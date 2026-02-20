@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>SummaKey Shopper Settings</title>
+  <link rel="stylesheet" href="options.css">
+  <style>
+    :root {
+      --brand-accent: #05FF66;
+      --brand-accent-text: #000000;
+      --brand-shopper-dark: #008060;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header-container">
+      <img src="icons/icon128.png" alt="Shopper Logo" class="header-icon">
+      <h1>SummaKey Shopper Settings</h1>
+    </div>
+
+    <div class="onboarding-banner">
+      New to SummaKey Shopper? <a href="get-started.html" target="_blank">View the getting started guide</a>
+    </div>
+
+    <div id="top-card-container">
+      <div class="card hotkey-card">
+        <h2>Customize Hotkey</h2>
+        <p class="description">
+          Open Chrome's shortcuts page to set hotkeys for "Scrape current item page" and "Compare all scraped items."
+        </p>
+        <button id="openShortcuts" class="secondary">Open Hotkey Settings</button>
+      </div>
+
+      <div class="card upgrade-card">
+        <h2>Unlock Premium</h2>
+        <ul class="upgrade-card-features">
+          <li>Compare 10 Products at Once (Not Just 2)</li>
+          <li>Get Personalized Advice, Not Just Generic Specs</li>
+          <li>Tell the AI Who You Are (e.g., "student on a budget" or "pro video editor")</li>
+          <li>Send Your Comparison to Any AI Chat</li>
+        </ul>
+        <button id="upgradeButton" class="button">Unlock Now</button>
+        <p class="restore-purchase"><a href="#" id="restorePurchase">Restore Your Purchase</a></p>
+      </div>
+    </div>
+
+    <div class="card" id="destination-card">
+      <h2>Destination AI Chat</h2>
+      <p class="description">Choose which AI Chat to use for your comparisons. Premium users can set a custom URL.</p>
+
+      <select id="llm-select-main" class="llm-select">
+        </select>
+
+      <label for="llmUrl-main" class="section-label custom-url-label" style="margin-top: 15px;">Custom URL</label>
+      <input type="text" id="llmUrl-main" class="llmUrl" placeholder="https://">
+    </div>
+
+    <div class="card" id="free-prompt-card" style="margin-top: 20px;">
+      <h2>Free Version Prompt</h2>
+      <p class="description">This is the powerful default prompt used for all free comparisons. Upgrade to Premium to edit this prompt and get personalized advice.</p>
+      <textarea id="free-prompt-textarea" disabled rows="12"></textarea>
+    </div>
+
+    <div class="card" id="pro-prompt-card" style="margin-top: 20px; display: none;">
+      <h2>Your Custom Pro Prompt</h2>
+      <p class="description">This is your editable Pro prompt. Use <code>{{content}}</code> as the placeholder for your scraped data. The app will join all items with <code>--- NEXT ITEM TO COMPARE ---</code> before appending them to this prompt.</p>
+      <textarea id="pro-prompt-textarea" rows="12"></textarea>
+      <button id="save-prompt" class="button">Save Custom Prompt</button>
+      <div class="status" id="save-status"></div>
+    </div>
+
+  </div>
+  
+  <script src="options.js"></script>
+</body>
+</html>

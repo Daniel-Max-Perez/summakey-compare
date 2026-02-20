@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      width: 300px;
+      font-family: "Neue Haas Grotesk Display Pro", -apple-system, sans-serif;
+      margin: 0;
+      background-color: #111;
+      color: #d9d9d9;
+      padding: 15px;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+    h2 {
+      font-size: 20px;
+      margin: 0 0 15px 0;
+      color: #fff;
+    }
+
+    #product-count {
+      font-size: 50px;
+      font-weight: 700;
+      color: #4734ff;
+      margin-bottom: 20px;
+      line-height: 1;
+    }
+
+    #product-count span {
+      font-size: 20px;
+      font-weight: 400;
+      color: #d9d9d9;
+    }
+
+    .button {
+      font-family: "Neue Haas Grotesk Display Pro", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+
+    .button.primary.green {
+      background-color: #05FF66;
+      color: #000;
+    }
+
+    .button.primary.green:hover {
+      filter: brightness(1.1);
+    }
+
+    .button.primary.purple {
+      background-color: #4734ff;
+      color: white;
+    }
+
+    .button.primary.purple:hover {
+      filter: brightness(1.2);
+    }
+
+    .tertiary-buttons {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .button.tertiary {
+      background-color: #333;
+      color: #d9d9d9;
+      font-size: 14px;
+      padding: 8px 10px;
+      width: 50%;
+      /* Make them half-width */
+    }
+
+    .button.tertiary:hover {
+      background-color: #444;
+    }
+
+    .footer {
+      margin-top: 15px;
+      border-top: 1px solid #333;
+      padding-top: 15px;
+    }
+
+    .footer a {
+      color: var(--brand-accent, #05FF66);
+      /* Use CSS variable */
+      text-decoration: none;
+      font-size: 16px;
+      /* Larger */
+      font-weight: 600;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body style="--brand-accent: #05FF66;">
+  <h2>Products Scraped</h2>
+  <div id="product-count">0<span>/10</span></div>
+
+  <button id="add-button" class="button primary green">Add Current Page</button>
+  <button id="compare-button" class="button primary purple">Compare Now</button>
+
+  <div class="tertiary-buttons">
+    <button id="clear-last-button" class="button tertiary">Clear Last</button>
+    <button id="clear-all-button" class="button tertiary">Clear All</button>
+  </div>
+
+  <div class="footer">
+    <a href="#" id="connect-account" style="display: none; margin-bottom: 8px;">Connect Account</a>
+    <a href="#" id="open-options">Options & Upgrade</a>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

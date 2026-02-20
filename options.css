@@ -1,0 +1,382 @@
+/* --- CSS VARIABLES FOR BRANDING --- */
+/* This file is now generic. The brand color is set in options.html */
+
+:root {
+  --brand-accent: #4734ff; /* Pro purple is the default */
+  --brand-accent-text: #ffffff;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  background-color: #f2f2f7;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  padding: 30px 20px;
+  min-height: 100vh;
+  font-size: 18px; /* Larger base font */
+}
+
+.container { max-width: 900px; width: 100%; }
+
+.header-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.header-container h1 {
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* --- Onboarding Banner Styles & Spacing --- */
+.onboarding-banner {
+  /* This is the new spacing you requested */
+  margin-bottom: 40px; 
+
+  /* Below is styling to match your screenshot */
+  background-color: #f8f8f8; 
+  padding: 15px 20px;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 17px; 
+}
+
+.onboarding-banner a {
+  color: var(--brand-shopper-dark); /* Use dark green */
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.onboarding-banner a:hover {
+  text-decoration: underline;
+}
+
+h1 {
+  font-size: 36px; /* Larger */
+  font-weight: 600;
+  color: #1d1d1f;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+h2 {
+  font-size: 26px; /* Larger */
+  font-weight: 600;
+  color: #1d1d1f;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+/* --- Top Cards --- */
+#top-card-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+    align-items: stretch;
+}
+
+.hotkey-card, .upgrade-card {
+    flex: 1;
+    padding: 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.hotkey-card .description, .upgrade-card .description {
+    font-size: 17px; /* Larger */
+    line-height: 1.6;
+    margin-bottom: 15px;
+    flex-grow: 1;
+}
+
+/* --- Upgrade Card --- */
+.restore-purchase {
+  margin-top: 15px;
+  font-size: 16px; /* Larger */
+}
+
+.restore-purchase a {
+  color: var(--brand-shopper-dark); /* Use dark green */
+  text-decoration: none;
+}
+
+.restore-purchase a:hover {
+  text-decoration: underline;
+}
+
+/* --- Preset Cards --- */
+#presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.preset-card {
+  border: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+  margin-bottom: 10px; 
+}
+
+.preset-number {
+  font-size: 14px; /* No change, this is a badge */
+  font-weight: 600;
+  color: #8e8e93;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background-color: #e9e9eb;
+  align-self: flex-start;
+  margin-right: 10px;
+}
+
+.preset-name {
+  font-size: 24px; /* Larger */
+  font-weight: 600;
+  border: none;
+  padding: 5px 0;
+  flex-grow: 1;
+  background-color: transparent;
+}
+
+.preset-name:focus {
+  outline: none;
+  background-color: #f2f2f7; 
+  border-radius: 6px;
+  padding: 5px 10px;
+  border-color: var(--brand-accent); 
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.25);
+}
+
+/* --- Form Elements --- */
+.section-label { 
+  display: block; 
+  font-size: 18px; /* Larger */
+  font-weight: 500; 
+  color: #1d1d1f; 
+  margin-bottom: 10px; 
+  margin-top: 20px; 
+}
+
+.description { 
+  font-size: 17px; /* Larger */
+  color: #6e6e73; 
+  line-height: 1.6; 
+  margin-top: 8px; 
+  margin-bottom: 15px; 
+}
+
+code { 
+  background-color: #e9e9eb; 
+  padding: 2px 4px; 
+  border-radius: 4px; 
+  font-family: "SF Mono", "Menlo", monospace; 
+}
+
+input[type="text"], textarea {
+  width: 100%; 
+  box-sizing: border-box; 
+  padding: 10px; 
+  font-size: 18px; /* Larger */
+  border: 1px solid #dcdce1;
+  border-radius: 8px; 
+  background-color: #ffffff;
+  color: #1d1d1f;
+}
+
+input[type="text"]:focus, textarea:focus { 
+  outline: none; 
+  border-color: var(--brand-accent); 
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2); 
+}
+
+textarea { 
+  resize: vertical; 
+  min-height: 100px; 
+}
+
+/* --- Dropdown Styles --- */
+.llm-select {
+  width: 100%;
+  padding: 12px 10px; /* Increased padding */
+  font-size: 20px; /* Match button font size */
+  font-family: inherit;
+  border: 1px solid #dcdce1;
+  border-radius: 8px;
+  background-color: #f2f2f7;
+  cursor: pointer;
+}
+
+.llm-select:focus {
+  outline: none;
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2);
+}
+
+.llm-select option[value="custom"]:disabled {
+  color: #999;
+}
+
+.custom-url-label,
+.llmUrl {
+  display: none;
+}
+
+/* --- Buttons --- */
+button {
+  padding: 10px 15px;
+  font-size: 20px; /* Larger */
+  font-weight: 600;
+  color: var(--brand-accent-text);
+  background-color: var(--brand-accent);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover { 
+  filter: brightness(1.2);
+}
+
+button:active { 
+  transform: translateY(0.5px); 
+}
+
+button.secondary {
+  background-color: #e9e9eb;
+  color: var(--brand-shopper-dark); /* Use dark green for text */
+  font-weight: 500;
+}
+
+button.secondary:hover { 
+  background-color: #dcdce1; 
+}
+
+button.clear-preset {
+  background-color: #ff3b30;
+  color: white;
+  font-weight: 500;
+  padding: 8px 12px;
+  flex-shrink: 0;
+}
+
+.button-container {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-grow: 1;
+  align-items: flex-end;
+}
+
+/* --- Radio Buttons --- */
+.radio-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.radio-option {
+  display: flex; 
+  align-items: center;
+  background-color: #f2f2f7;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.radio-option label { 
+  margin-left: 6px; 
+  font-weight: 400; 
+  cursor: pointer; 
+  color: #1d1d1f; 
+}
+
+input[type="radio"] { 
+  cursor: pointer; 
+  accent-color: var(--brand-accent); 
+}
+
+/* --- Status Message --- */
+.status {
+  margin-top: 15px; 
+  text-align: center; 
+  font-weight: 500; 
+  color: #34c759;
+  opacity: 0; 
+  transition: opacity 0.5s; 
+  font-size: 17px; /* Larger */
+}
+
+/* --- Locked State --- */
+.preset-card.locked {
+  position: relative;
+}
+
+.preset-card.locked::after {
+  content: 'Unlock Pro to use this preset';
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  color: #1d1d1f;
+  font-weight: 600;
+  text-align: center;
+  padding: 20px;
+  pointer-events: all;
+  cursor: pointer;
+}
+
+input:disabled, textarea:disabled {
+  background-color: #f2f2f7;
+  cursor: not-allowed;
+  color: #8e8e93;
+}
+
+.card#free-prompt-card,
+.card#pro-prompt-card {
+  margin-top: 20px;
+}
+
+/* New style for the Unlock Premium feature list */
+.upgrade-card-features {
+  list-style: disc;
+  padding-left: 25px;
+  text-align: left;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.upgrade-card-features li {
+  margin-bottom: 10px;
+}

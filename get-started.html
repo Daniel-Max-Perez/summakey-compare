@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Get Started with SummaKey Shopper</title>
+  <link rel="stylesheet" href="get-started.css">
+  <style>
+    :root { 
+      --brand-shopper: #05FF66; 
+      --brand-shopper-dark: #008060;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <img src="icons/icon128.png" alt="SummaKey Shopper Logo" class="logo">
+      <h1>Welcome to SummaKey Shopper!</h1>
+    </div>
+    <p class="subhead">You're 60 seconds away from your first AI-powered comparison.</p>
+
+    <div class="top-box">
+      <h2>💡 Here's What You Just Installed</h2>
+      <p>You've installed a personal shopping assistant to end the "10-tab guesswork." Here's your new 2-click workflow:</p>
+      <ol class="how-it-works-list">
+        <li>On any product page, click the SummaKey icon and hit <strong>"Add Current Page"</strong> to "collect" it.</li>
+        <li>After you've collected a few items, click the icon again and hit <strong>"Compare Now"</strong> to get an instant AI comparison.</li>
+      </ol>
+    </div>
+
+    <div class="step-card" id="consent-step">
+      <h3>Privacy & Consent (Step 1 of 2)</h3>
+      <p class="step-description">SummaKey Shopper works by temporarily <strong>storing</strong> scraped web content in your browser.</p>
+      
+      <div class="consent-box">
+        <input type="checkbox" id="privacy-consent">
+        <label for="privacy-consent">
+          I understand and agree that this extension will temporarily store scraped website content in my browser's storage to build my comparison list. I have read and agree to the <a href="https://summakey.com/privacy-policy" target="_blank">Privacy Policy</a>.
+        </label>
+      </div>
+    </div>
+
+    <div id="setup-content" class="disabled-section">
+      <h2 class="setup-headline">Your 60-Second Setup (Step 2 of 2)</h2>
+
+      <div class="step-card">
+        <h3>The fastest way to get started is to watch our 1-minute video.</h3>
+        <p class="step-description">Watching our 1-minute video is the fastest way to set up your hotkey and run your first comparison.</p>
+        <button id="watchVideo" class="button button-shopper">Watch the Setup Video (1 min)</button>
+        
+        <p class="manual-setup-link">
+          Don't like videos? <a href="#" id="openOptionsPage">Go to the Options page</a> to set it up.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="get-started.js"></script>
+</body>
+</html>
