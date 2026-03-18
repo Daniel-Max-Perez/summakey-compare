@@ -2,7 +2,7 @@
 /* This file is now generic. The brand color is set in options.html */
 
 :root {
-  /* Compare dark green is the brand accent */
+  /* Shopper dark green is the brand accent */
   --brand-accent: #008060;
   --brand-accent-text: #ffffff;
 }
@@ -54,7 +54,7 @@ body {
 }
 
 .onboarding-banner a {
-  color: var(--brand-compare-dark); /* Use dark green */
+  color: var(--brand-shopper-dark); /* Use dark green */
   font-weight: 600;
   text-decoration: none;
 }
@@ -485,7 +485,7 @@ input:disabled, textarea:disabled {
   margin-top: 20px;
 }
 
-/* New style for the Unlock Pro feature list */
+/* New style for the Unlock Premium feature list */
 .upgrade-card-features {
   list-style: none;
   padding-left: 0;
@@ -514,7 +514,7 @@ input:disabled, textarea:disabled {
   background-repeat: no-repeat;
 }
 
-/* --- Pro Billing Options --- */
+/* --- Premium Billing Options --- */
 .billing-toggle-container {
   display: flex;
   flex-direction: column;

@@ -1,0 +1,15 @@
+{
+  "name": "summakey-compare-extension",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "vite build",
+    "watch": "vite build --watch"
+  },
+  "dependencies": {
+    "@summakey/shared-utils": "^1.0.0"
+  },
+  "devDependencies": {
+    "vite": "^6.2.0"
+  }
+}

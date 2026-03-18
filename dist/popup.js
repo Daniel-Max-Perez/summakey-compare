@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 20px; box-sizing: border-box; text-align: center;">
           <img src="icons/icon48.png" alt="Logo" style="width: 48px; height: 48px; margin-bottom: 20px;">
           <h2 style="font-size: 18px; color: #fff; margin: 0 0 12px 0; font-family: 'Outfit', sans-serif;">Setup Required</h2>
-          <p style="color: #A0A0A0; margin: 0 0 24px 0; font-size: 14px; line-height: 1.5; font-family: 'Outfit', sans-serif;">Review our privacy policy to start using SummaKey Compare.</p>
+          <p style="color: #A0A0A0; margin: 0 0 24px 0; font-size: 14px; line-height: 1.5; font-family: 'Outfit', sans-serif;">Review our privacy policy to start using SummaKey Shopper.</p>
           <button id="force-setup-btn" class="button primary green" style="width: 100%; font-family: 'Outfit', sans-serif;">Complete Setup</button>
         </div>
       `;
@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add a 10s frontend timeout in case background hangs
       const timeoutId = setTimeout(() => {
         addBtn.classList.remove('loading');
-        addBtn.querySelector('.btn-text').textContent = 'Add Current Page';
+        addBtn.querySelector('.btn-text').textContent = 'Add Current Product';
         addBtn.disabled = false;
         alert('Action timed out. Please refresh the page and try again.');
       }, 10000);
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
       chrome.runtime.sendMessage({ action: 'scrapeCurrentPage' }, (response) => {
         clearTimeout(timeoutId);
         addBtn.classList.remove('loading');
-        addBtn.querySelector('.btn-text').textContent = 'Add Current Page';
+        addBtn.querySelector('.btn-text').textContent = 'Add Current Product';
         addBtn.disabled = false;
 
         if (response && response.status === 'scraped') {
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     compareBtn.addEventListener('click', () => {
       if (currentCount === 0) {
-        alert('Please add at least one page to compare.');
+        alert('Please add at least one product to compare.');
         return;
       }
       compareBtn.classList.add('loading');
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     clearAllBtn.addEventListener('click', () => {
-      if (confirm('Clear all pages from your comparison list?')) {
+      if (confirm('Clear all products from your comparison list?')) {
         chrome.runtime.sendMessage({ action: 'clearList' }, (response) => {
           if (response && response.status === 'cleared') {
              updateCountUI(0, currentLimit);

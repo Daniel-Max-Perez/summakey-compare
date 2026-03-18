@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (watchButton) {
     watchButton.addEventListener('click', () => {
-      chrome.tabs.create({ url: 'https://summakey.com/get-started-compare' });
+      chrome.tabs.create({ url: 'https://summakey.com/get-started-shopper' });
     });
   }
 

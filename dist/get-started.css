@@ -74,8 +74,8 @@ h1 {
 }
 
 .step-badge {
-  background: var(--brand-compare-dim);
-  color: var(--brand-compare);
+  background: var(--brand-shopper-dim);
+  color: var(--brand-shopper);
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -296,14 +296,13 @@ h1 {
   transform: scale(0.98);
 }
 
-.button-compare {
-  background: var(--brand-compare);
+.button-shopper {
+  background: var(--brand-shopper);
   color: #000;
 }
 
-.button-compare:hover {
-  background: var(--brand-compare-dark);
-  color: #fff;
+.button-shopper:hover {
+  background: #00ff62;
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(5, 255, 98, 0.3);
 }
