@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   // --- Default Prompt ---
-  const DEFAULT_SHOPPER_PROMPT = `You are an expert product analyst and data-driven shopping assistant. Your sole mission is to help me make the best, fastest, and most informed buying decision possible, based only on the raw text data I provide.
+  const DEFAULT_COMPARE_PROMPT = `You are an expert product analyst and data-driven shopping assistant. Your sole mission is to help me make the best, fastest, and most informed buying decision possible, based only on the raw text data I provide.
 
 My Priorities (Default):
 
@@ -101,7 +101,7 @@ Start here. Based on my default priorities, state your #1 Top Recommendation and
 
 Create a comprehensive markdown table comparing all products.
 
-* The first column must be the Product Name.
+* The first column must be the Page Name.
 
 * Subsequent columns must be for Price and all other Key Features (e.g., Specs, Size, etc.).
 
@@ -119,7 +119,7 @@ Conclude with this final analysis:
 
 * Best for Quality/Features: State which product is the best choice if only the best features and quality matter, regardless of price.
 
-* Missing Information: Explicitly state any key information (like price, warranty, or a key spec) that was not found in the provided text for any product.
+* Missing Information: Explicitly state any key information (like price, warranty, or a key spec) that was not found in the provided text for any page.
 
 ---
 
@@ -164,7 +164,7 @@ Conclude with this final analysis:
     if (email) {
       const isSessionValid = await validateSession();
       if (!isSessionValid) {
-        console.warn('SummaKey Shopper: Session invalid or expired. Logging out.');
+        console.warn('SummaKey Compare: Session invalid or expired. Logging out.');
         await forceLogout();
         await initializeApp(); // Re-init as signed out
         return;
@@ -192,10 +192,10 @@ Conclude with this final analysis:
     signedInEmail.textContent = email;
 
     if (isPro) {
-      purchaseStatusText.textContent = '🎉 SummaKey Shopper Premium is active.';
+      purchaseStatusText.textContent = '🎉 SummaKey Compare Pro is active.';
       purchaseStatusText.style.color = 'var(--brand-accent)';
     } else {
-      purchaseStatusText.textContent = 'No active premium subscription found.';
+      purchaseStatusText.textContent = 'No active pro subscription found.';
       purchaseStatusText.style.color = '#999';
     }
   }
@@ -278,7 +278,7 @@ Conclude with this final analysis:
     } else {
       proPromptCard.style.display = 'none';
       freePromptCard.style.display = 'block';
-      freeTextarea.value = DEFAULT_SHOPPER_PROMPT;
+      freeTextarea.value = DEFAULT_COMPARE_PROMPT;
     }
   };
 
@@ -287,7 +287,7 @@ Conclude with this final analysis:
     if (proPrompt) {
       proTextarea.value = proPrompt;
     } else {
-      proTextarea.value = DEFAULT_SHOPPER_PROMPT;
+      proTextarea.value = DEFAULT_COMPARE_PROMPT;
     }
   };
 
@@ -316,21 +316,21 @@ Conclude with this final analysis:
       sendOtpBtn.disabled = true;
 
       try {
-        console.log('SummaKey Shopper: Attempting OTP send to:', email);
+        console.log('SummaKey Compare: Attempting OTP send to:', email);
         const { error } = await supabaseClient.auth.signInWithOtp({ email });
 
         if (error) {
-          console.error('SummaKey Shopper: Supabase Auth Error:', error);
+          console.error('SummaKey Compare: Supabase Auth Error:', error);
           throw error;
         }
 
-        console.log('SummaKey Shopper: OTP sent successfully');
+        console.log('SummaKey Compare: OTP sent successfully');
         pendingEmail = email;
         otpEmailDisplay.textContent = email;
         showAuthState('verify-otp');
         otpCodeInput.focus();
       } catch (err) {
-        console.error('SummaKey Shopper: Sign in catch-block error details:', {
+        console.error('SummaKey Compare: Sign in catch-block error details:', {
           message: err.message,
           stack: err.stack,
           full: err
@@ -373,7 +373,7 @@ Conclude with this final analysis:
 
         // If 'email' fails, try 'signup' (common if it's the user's first time)
         if (error) {
-          console.warn('SummaKey Shopper: verification with type "email" failed, trying "signup"...', error.message);
+          console.warn('SummaKey Compare: verification with type "email" failed, trying "signup"...', error.message);
           const signupResult = await supabaseClient.auth.verifyOtp({
             email: pendingEmail,
             token: token,
@@ -385,7 +385,7 @@ Conclude with this final analysis:
 
         // If that also fails, try 'magiclink' (some older configs use this)
         if (error) {
-          console.warn('SummaKey Shopper: verification with type "signup" failed, trying "magiclink"...', error.message);
+          console.warn('SummaKey Compare: verification with type "signup" failed, trying "magiclink"...', error.message);
           const magicResult = await supabaseClient.auth.verifyOtp({
             email: pendingEmail,
             token: token,
@@ -411,7 +411,7 @@ Conclude with this final analysis:
           pendingEmail = '';
         }
       } catch (err) {
-        console.error('SummaKey Shopper: OTP verify error:', err);
+        console.error('SummaKey Compare: OTP verify error:', err);
         showStatus(otpVerifyStatus, err.message || 'Invalid code. Please try again.', '#ff4444');
         hideStatus(otpVerifyStatus);
       } finally {
@@ -440,7 +440,7 @@ Conclude with this final analysis:
         await forceLogout();
         await initializeApp();
       } catch (err) {
-        console.error('SummaKey Shopper: Sign out error:', err);
+        console.error('SummaKey Compare: Sign out error:', err);
       } finally {
         signOutBtn.textContent = 'Sign Out';
         signOutBtn.disabled = false;
@@ -505,7 +505,7 @@ Conclude with this final analysis:
         const installationId = await getOrCreateInstallationId();
         
         // --- ADDED SUPPORT FOR MONTHLY/YEARLY BILLING INTERVAL ---
-        const intervalRadios = document.getElementsByName('shopperBillingInterval');
+        const intervalRadios = document.getElementsByName('compareBillingInterval');
         let selectedInterval = 'yearly'; // default
         for (const radio of intervalRadios) {
           if (radio.checked) {
@@ -522,7 +522,7 @@ Conclude with this final analysis:
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             userId: installationId, 
-            product: 'shopper',
+            product: 'compare',
             interval: selectedInterval,
             email: email || undefined
           })

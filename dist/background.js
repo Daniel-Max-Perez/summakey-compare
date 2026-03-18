@@ -432,9 +432,9 @@
       }, 500);
     }, notificationDelayMs);
   }
-  const LOG_PREFIX = "SummaKey Shopper";
-  const NOTIFICATION_ID = "summakey-shopper-notification";
-  const DEFAULT_SHOPPER_PROMPT_V2 = `You are an expert product analyst and data-driven shopping assistant. Your sole mission is to help me make the best, fastest, and most informed buying decision possible, based only on the raw text data I provide. The raw text for each item is separated by --- NEXT ITEM TO COMPARE ---.
+  const LOG_PREFIX = "SummaKey Compare";
+  const NOTIFICATION_ID = "summakey-compare-notification";
+  const DEFAULT_COMPARE_PROMPT_V2 = `You are an expert product analyst and data-driven shopping assistant. Your sole mission is to help me make the best, fastest, and most informed buying decision possible, based only on the raw text data I provide. The raw text for each item is separated by --- NEXT ITEM TO COMPARE ---.
 
 
 
@@ -476,7 +476,7 @@ Begin with your final verdict. Analyze the data against my 4 priorities and prov
 
 Create a comprehensive markdown table comparing all products.
 
-* The first column must be the **Product Name**.
+* The first column must be the **Page Name**.
 
 * Subsequent columns must be for **Price** and all other **Key Features** (e.g., Specs, Size, Ingredients).
 
@@ -506,7 +506,7 @@ Conclude by "attacking" the provided data.
 
 * Explicitly state if **no user review sentiment** was found in the text for a product.
 
-* For each missing point, state the risk it introduces (e..g., "Missing review sentiment for Product A means its real-world quality is unknown").
+* For each missing point, state the risk it introduces (e..g., "Missing review sentiment for Page A means its real-world quality is unknown").
 
 ---
 
@@ -651,7 +651,7 @@ Here is the data:
         console.warn(`${LOG_PREFIX} [${logId}]: List full (${currentList.length}/${limit}).`);
         await showNotification({
           title: "List Full",
-          message: `Free users can only compare ${limit} products. Upgrade for 10.`,
+          message: `Free users can only compare ${limit} pages. Upgrade for 10.`,
           notificationId: NOTIFICATION_ID
         });
         chrome.runtime.openOptionsPage();
@@ -700,13 +700,13 @@ Here is the data:
         return { status: "error", message: e.message };
       }
       if (!pageContent || pageContent.trim().length === 0 || pageContent.startsWith("ERROR:")) {
-        const errMsg = pageContent || "No products detected on this page.";
+        const errMsg = pageContent || "No details detected on this page.";
         return { status: "error", message: errMsg };
       }
       const maxContentSize = 100 * 1024;
       const trimmedContent = pageContent.length > maxContentSize ? pageContent.substring(0, maxContentSize) + "\n\n[Content truncated]" : pageContent;
       const newProduct = {
-        title: currentTab.title || "Untitled Product",
+        title: currentTab.title || "Untitled Page",
         url: currentTab.url,
         content: trimmedContent,
         timestamp: Date.now()
@@ -716,8 +716,8 @@ Here is the data:
       await chrome.action.setBadgeText({ text: updatedList.length.toString() });
       await chrome.action.setBadgeBackgroundColor({ color: "#4734ff" });
       await showNotification({
-        title: "Product Added!",
-        message: `Product ${updatedList.length} added.`,
+        title: "Page Added!",
+        message: `Page ${updatedList.length} added.`,
         notificationId: NOTIFICATION_ID
       });
       return { status: "scraped", count: updatedList.length };
@@ -759,7 +759,7 @@ Here is the data:
     if (currentList.length === 0) {
       await showNotification({
         title: "List Empty",
-        message: "Please scrape some products first.",
+        message: "Please scrape some pages first.",
         notificationId: NOTIFICATION_ID
       });
       return;
@@ -769,13 +769,13 @@ Here is the data:
     if (isPro && proPrompt) {
       finalPrompt = proPrompt.replace("{{content}}", allContent);
     } else {
-      finalPrompt = DEFAULT_SHOPPER_PROMPT_V2.replace("{{content}}", allContent);
+      finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace("{{content}}", allContent);
     }
     const { destinationUrl } = await chrome.storage.sync.get("destinationUrl");
     const destinationURL = destinationUrl || "https://gemini.google.com/app";
     await showNotification({
-      title: "Comparing Products",
-      message: `Comparing ${currentList.length} products...`,
+      title: "Comparing Pages",
+      message: `Comparing ${currentList.length} pages...`,
       notificationId: NOTIFICATION_ID
     });
     navigateAndInjectPrompt({
@@ -790,7 +790,7 @@ Here is the data:
     await chrome.action.setBadgeText({ text: "" });
     await showNotification({
       title: "List Cleared",
-      message: "Your product comparison list is now empty.",
+      message: "Your page comparison list is now empty.",
       notificationId: NOTIFICATION_ID
     });
   }
@@ -799,7 +799,7 @@ Here is the data:
     if (!scrapedProducts || scrapedProducts.length === 0) {
       await showNotification({
         title: "List Empty",
-        message: "There are no products to remove.",
+        message: "There are no pages to remove.",
         notificationId: NOTIFICATION_ID
       });
       return;
@@ -812,10 +812,10 @@ Here is the data:
     if (typeof removedProduct === "string") {
       displayTitle = removedProduct.substring(0, 40).split("\n")[0];
     } else {
-      displayTitle = removedProduct.title || "Untitled Product";
+      displayTitle = removedProduct.title || "Untitled Page";
     }
     await showNotification({
-      title: "Product Removed",
+      title: "Page Removed",
       message: `Removed: "${displayTitle.substring(0, 30)}..."`,
       notificationId: NOTIFICATION_ID
     });

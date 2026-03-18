@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SummaKey Shopper",
-  "version": "1.01",
-  "description": "Your AI shopping assistant. Scrape multiple product pages with a hotkey, then click one button to get an instant comparison.",
+  "name": "SummaKey Compare",
+  "version": "1.10",
+  "description": "Multi-page scraping and cross-evaluation",
   "options_page": "options.html",
   "permissions": [
     "activeTab",
@@ -33,7 +33,7 @@
     "service_worker": "sw-loader.js"
   },
   "action": {
-    "default_title": "SummaKey Shopper",
+    "default_title": "SummaKey Compare",
     "default_popup": "popup.html"
   },
   "web_accessible_resources": [
@@ -52,10 +52,10 @@
   ],
   "commands": {
     "scrape_current_page": {
-      "description": "Scrape current product page"
+      "description": "Scrape current page"
     },
     "compare_products": {
-      "description": "Compare all scraped products and clear list"
+      "description": "Compare all scraped pages and clear list"
     }
   }
 }

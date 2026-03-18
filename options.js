@@ -524,7 +524,8 @@ Conclude with this final analysis:
             userId: installationId, 
             product: 'compare',
             interval: selectedInterval,
-            email: email || undefined
+            email: await getAuthenticatedEmail() || undefined,
+            source: 'extension'
           })
         });
         const data = await response.json();

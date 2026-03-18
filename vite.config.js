@@ -25,6 +25,8 @@ function copyExtensionAssets() {
         'supabase.js',
         'google-analytics.js',
         'LICENSE.txt',
+        'promo_screenshot_compare_1280x800.png',
+        'icon128.png'
       ];
 
       for (const file of staticFiles) {

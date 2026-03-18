@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>SummaKey Shopper Settings</title>
+  <title>SummaKey Compare Settings</title>
   <link rel="stylesheet" href="options.css">
 
 </head>
@@ -12,8 +12,8 @@
 
   <div class="container">
     <div class="header-container">
-      <img src="icons/icon128.png" alt="Shopper Logo" class="header-icon">
-      <h1>SummaKey Shopper Settings</h1>
+      <img src="icons/icon128.png" alt="Compare Logo" class="header-icon">
+      <h1>SummaKey Compare Settings</h1>
     </div>
 
     <div id="top-card-container">
@@ -30,22 +30,22 @@
         </div>
       </div>
 
-      <!-- Upgrade/Premium Card -->
+      <!-- Upgrade/Pro Card -->
       <div class="card upgrade-card">
         <h2 class="card-title-hover">
-          Unlock Premium
+          Unlock Pro
           <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </h2>
         <div class="expandable-content">
           <ul class="upgrade-card-features">
-            <li>Compare up to 10 products instantly (Free limit: 2)</li>
+            <li>Compare up to 10 pages instantly (Free limit: 2)</li>
             <li>Unlock personalized, persona-driven AI recommendations</li>
             <li>Route comparisons to any custom AI chat or endpoint</li>
           </ul>
           
           <div class="billing-toggle-container">
             <label class="billing-option selected">
-              <input type="radio" name="shopperBillingInterval" value="yearly" checked>
+              <input type="radio" name="compareBillingInterval" value="yearly" checked>
               <div class="plan-info">
                 <span class="plan-name">Yearly Plan</span>
                 <span class="plan-price">$30 / year</span>
@@ -53,7 +53,7 @@
               <span class="plan-tag">Save 50%</span>
             </label>
             <label class="billing-option">
-              <input type="radio" name="shopperBillingInterval" value="monthly">
+              <input type="radio" name="compareBillingInterval" value="monthly">
               <div class="plan-info">
                 <span class="plan-name">Monthly Plan</span>
                 <span class="plan-price">$5 / month</span>
@@ -61,7 +61,7 @@
             </label>
           </div>
 
-          <button id="upgradeToPro">Get SummaKey Premium</button>
+          <button id="upgradeToPro">Get SummaKey Pro</button>
           <a href="#" id="restorePurchaseLink" class="secondary-link" style="display: block; margin-top: 15px; font-size: 14px; color: #6e6e73; text-decoration: none;">Restore Purchase</a>
         </div>
       </div>
@@ -76,7 +76,7 @@
 
           <!-- Signed-out state: email input + send OTP -->
           <div id="auth-signed-out">
-            <p class="description">Sign in with your email to sync your premium access across devices.</p>
+            <p class="description">Sign in with your email to sync your pro access across devices.</p>
             <input type="email" id="authEmail" placeholder="your@email.com" class="email-input-new">
             <button id="sendOtpBtn" class="secondary">Send Sign-In Code</button>
             <div class="status" id="otp-send-status" style="margin-top: 10px; opacity: 0; transition: opacity 0.3s ease;"></div>
@@ -106,7 +106,7 @@
     <!-- Move destination-card out of top-card-container so it stays visible as its own section -->
     <div class="card" id="destination-card" style="margin-top: 20px;">
       <h2>Destination AI Chat</h2>
-      <p class="description"><strong>Premium users</strong> can unlock custom routing URLs.</p>
+      <p class="description"><strong>Pro users</strong> can unlock custom routing URLs.</p>
 
       <select id="llm-select-main" class="llm-select">
       </select>
@@ -118,7 +118,7 @@
     <div class="card" id="free-prompt-card" style="margin-top: 20px;">
       <h2>Free Version Prompt</h2>
       <p class="description"><strong>Upgrade to
-          Premium</strong> to write your own rules and get personalized buying advice.</p>
+          Pro</strong> to write your own rules and get personalized comparisons.</p>
       <textarea id="free-prompt-textarea" disabled rows="12"></textarea>
     </div>
 
@@ -136,7 +136,7 @@
     <!-- Getting Started Card -->
     <div class="card" id="getting-started-card" style="margin-top: 20px; text-align: center; padding: 25px;">
       <p class="description" style="margin: 0; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-        New to SummaKey Shopper? 
+        New to SummaKey Compare? 
         <a href="get-started.html" target="_blank" style="color: var(--brand-accent); font-weight: 600; text-decoration: none;">
           View the getting started guide
         </a>

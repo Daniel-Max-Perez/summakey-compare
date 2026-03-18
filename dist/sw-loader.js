@@ -1,5 +1,5 @@
 /**
- * SummaKey Shopper — Service Worker Entry Point
+ * SummaKey Compare — Service Worker Entry Point
  *
  * This file loads Supabase first (via importScripts), then loads the
  * bundled background logic. This two-step approach is required because:

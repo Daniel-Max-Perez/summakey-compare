@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SummaKey Compare",
-  "version": "1.01",
+  "version": "1.10",
   "description": "Multi-page scraping and cross-evaluation",
   "options_page": "options.html",
   "permissions": [
@@ -21,7 +21,8 @@
     "https://claude.ai/*",
     "https://grok.com/*",
     "https://chat.mistral.ai/*",
-    "https://chat.deepseek.com/*"
+    "https://chat.deepseek.com/*",
+    "https://www.google-analytics.com/*"
   ],
   "icons": {
     "16": "icons/icon16.png",
