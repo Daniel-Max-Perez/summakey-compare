@@ -5,22 +5,31 @@
  * This script sends events directly via fetch to the GA4 API.
  */
 
-const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // REPLACE ME
-const GA_API_SECRET = 'YOUR_SECRET';     // REPLACE ME
+const GA_MEASUREMENT_ID = 'G-PYPZ2GDE3D';
+const GA_API_SECRET = 'F0FFI8wnQHeVCDW57Nn_7g';
 
 // Get or Create a Client ID for the user
 async function getOrCreateClientId() {
-  const result = await chrome.storage.local.get('ga_client_id');
-  let clientId = result.ga_client_id;
+  const result = await chrome.storage.local.get('clientId');
+  let clientId = result.clientId;
   if (!clientId) {
-    clientId = self.crypto.randomUUID ? self.crypto.randomUUID() : (Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
-    await chrome.storage.local.set({ ga_client_id: clientId });
+    // Check for legacy ID to migrate
+    const legacy = await chrome.storage.local.get('ga_client_id');
+    if (legacy.ga_client_id) {
+      clientId = legacy.ga_client_id;
+    } else {
+      clientId = self.crypto.randomUUID ? self.crypto.randomUUID() : (Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+    }
+    await chrome.storage.local.set({ clientId });
   }
   return clientId;
 }
 
-// Global tracking function
-async function trackEvent(name, params = {}) {
+// Global tracking function (Renamed to logGA4Event and gated for compliance)
+async function logGA4Event(name, params = {}) {
+  const { allowAnalytics } = await chrome.storage.local.get('allowAnalytics');
+  if (allowAnalytics === false) return; // Silent exit if user opted out
+
   if (GA_MEASUREMENT_ID === 'G-XXXXXXXXXX') {
     console.warn('GA4: Please set a valid GA_MEASUREMENT_ID in google-analytics.js');
     return;
@@ -56,15 +65,18 @@ async function trackEvent(name, params = {}) {
 // Listen for messages from other parts of the extension (popup, content scripts)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'GA_TRACK_EVENT') {
-    trackEvent(message.name, message.params || {});
+    logGA4Event(message.name, message.params || {});
   }
 });
 
 // Initial tracking for start/install
-chrome.runtime.onInstalled.addListener((details) => {
+chrome.runtime.onInstalled.addListener(async (details) => {
+  // Set default compliance opt-in on install
   if (details.reason === 'install') {
-    trackEvent('extension_install');
+    await chrome.storage.local.set({ allowAnalytics: true });
+    logGA4Event('extension_install');
   } else if (details.reason === 'update') {
-    trackEvent('extension_update', { previous_version: details.previousVersion });
+    logGA4Event('extension_update', { previous_version: details.previousVersion });
   }
 });
+

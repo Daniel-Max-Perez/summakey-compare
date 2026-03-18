@@ -133,8 +133,23 @@
       <div class="status warning" id="prompt-warning" style="display: none; color: #ff3b30; margin-top: 10px; font-weight: 600;"></div>
     </div>
 
+    <div class="card compliance-card" style="margin-top: 20px;">
+      <h2 class="card-title-hover" style="justify-content: flex-start;">
+        Privacy & Compliance
+        <svg class="dropdown-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 8px;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </h2>
+      <div class="expandable-content">
+        <p class="description">Control how your data is used to help improve the SummaKey experience.</p>
+        <label class="toggle-container" style="display: flex; align-items: center; cursor: pointer; gap: 12px; margin-top: 10px;">
+          <input type="checkbox" id="allowAnalytics" checked style="width: 20px; height: 20px; cursor: pointer; margin: 0;">
+          <span class="description" style="margin: 0; font-weight: 500; color: #1d1d1f;">Share anonymous usage data to help improve SummaKey.</span>
+        </label>
+      </div>
+    </div>
+
     <!-- Getting Started Card -->
     <div class="card" id="getting-started-card" style="margin-top: 20px; text-align: center; padding: 25px;">
+
       <p class="description" style="margin: 0; font-size: 18px; display: flex; align-items: center; justify-content: center; gap: 8px;">
         New to SummaKey Compare? 
         <a href="get-started.html" target="_blank" style="color: var(--brand-accent); font-weight: 600; text-decoration: none;">

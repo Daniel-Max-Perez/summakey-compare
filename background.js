@@ -349,11 +349,13 @@ async function scrapeAndStore(logId = 'direct') {
     await chrome.action.setBadgeBackgroundColor({ color: '#4734ff' });
 
     await showNativeNotification("Page Added!", `Page ${updatedList.length} added.`);
+    logGA4Event('page_scraped', { count: updatedList.length });
     return { status: 'scraped', count: updatedList.length };
 
   } catch (e) {
     console.error(`SummaKey Compare [${logId}]: Error in scrapeAndStore:`, e);
     await showNativeNotification("Scrape Failed", e.message);
+    logGA4Event('scrape_error', { error: e.message });
     return { status: 'error', message: e.message };
   }
 }
@@ -419,6 +421,7 @@ async function compareProducts() {
 
   // Show notification first
   await showNativeNotification("Comparing Pages", `Comparing ${currentList.length} pages...`);
+  logGA4Event('compare_initiated', { count: currentList.length });
 
   // Add delay to allow notification to appear before tab switches
   setTimeout(async () => {

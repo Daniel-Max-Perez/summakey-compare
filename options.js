@@ -572,6 +572,37 @@ Conclude with this final analysis:
     });
   });
 
+  // --- Card Expansion Logic ---
+  [
+    { card: document.querySelector('.hotkey-card'), header: document.querySelector('.hotkey-card h2') },
+    { card: document.querySelector('.upgrade-card'), header: document.querySelector('.upgrade-card h2') },
+    { card: document.querySelector('.account-card'), header: document.querySelector('.account-card h2') },
+    { card: document.querySelector('.compliance-card'), header: document.querySelector('.compliance-card h2') }
+  ].forEach(item => {
+    if (item.card && item.header) {
+      item.header.addEventListener('click', () => {
+        item.card.classList.toggle('expanded');
+      });
+    }
+  });
+
+  // --- Compliance ---
+  const complianceToggle = document.getElementById('allowAnalytics');
+  if (complianceToggle) {
+    // Load state
+    chrome.storage.local.get({ allowAnalytics: true }, (data) => {
+      complianceToggle.checked = data.allowAnalytics;
+    });
+
+    // Save state
+    complianceToggle.addEventListener('change', () => {
+      const isAllowed = complianceToggle.checked;
+      chrome.storage.local.set({ allowAnalytics: isAllowed }, () => {
+        console.log('SummaKey Compare: allowAnalytics set to:', isAllowed);
+      });
+    });
+  }
+
   // --- Start the app ---
   initializeApp();
 });

@@ -142,9 +142,14 @@ h2 {
 .hotkey-card:hover .dropdown-icon,
 .upgrade-card:hover .dropdown-icon,
 .account-card:hover .dropdown-icon,
+.compliance-card:hover .dropdown-icon,
 .hotkey-card:focus-within .dropdown-icon,
 .upgrade-card:focus-within .dropdown-icon,
-.account-card:focus-within .dropdown-icon {
+.account-card:focus-within .dropdown-icon,
+.hotkey-card.expanded .dropdown-icon,
+.upgrade-card.expanded .dropdown-icon,
+.account-card.expanded .dropdown-icon,
+.compliance-card.expanded .dropdown-icon {
   transform: rotate(180deg);
   opacity: 1;
 }
@@ -161,10 +166,15 @@ h2 {
 .hotkey-card:hover .expandable-content,
 .upgrade-card:hover .expandable-content,
 .account-card:hover .expandable-content,
+.compliance-card:hover .expandable-content,
 .hotkey-card:focus-within .expandable-content,
 .upgrade-card:focus-within .expandable-content,
-.account-card:focus-within .expandable-content {
-  max-height: 500px;
+.account-card:focus-within .expandable-content,
+.hotkey-card.expanded .expandable-content,
+.upgrade-card.expanded .expandable-content,
+.account-card.expanded .expandable-content,
+.compliance-card.expanded .expandable-content {
+  max-height: 800px;
   opacity: 1;
   margin-top: 16px;
 }
