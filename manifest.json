@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "SummaKey Compare",
-  "version": "1.10",
-  "description": "Multi-page scraping and cross-evaluation",
+  "name": "SummaKey Compare - Side-by-Side AI Research Tool",
+  "version": "1.11",
+  "description": "Compare products, research, and data in two clicks. Collect pages with a hotkey and let AI build you a comparison table.",
   "options_page": "options.html",
   "permissions": [
     "activeTab",
@@ -34,7 +34,7 @@
     "service_worker": "sw-loader.js"
   },
   "action": {
-    "default_title": "SummaKey Compare",
+    "default_title": "SummaKey Compare - Side-by-Side AI Research Tool",
     "default_popup": "popup.html"
   },
   "web_accessible_resources": [

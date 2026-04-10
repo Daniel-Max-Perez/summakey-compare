@@ -250,41 +250,12 @@ async function scrapeAndStore(logId = 'direct') {
     }
 
     // --- Session validation & purchase-based gating ---
-    console.log(`${LOG_PREFIX} [${logId}]: Validating auth...`);
+    console.log(`${LOG_PREFIX} [${logId}]: Checking cached auth status...`);
     
-    // Auth block with 8s hard timeout
-    const authPromise = (async () => {
-      const email = await getAuthenticatedEmail();
-      let isPro = false;
-      if (email) {
-        const sessionValid = await validateSession();
-        if (!sessionValid) {
-          console.warn(`${LOG_PREFIX} [${logId}]: Session invalid.`);
-          await forceLogout();
-          await showNotification({
-            title: 'Session Expired',
-            message: "Please sign in again.",
-            notificationId: NOTIFICATION_ID,
-          });
-          chrome.runtime.openOptionsPage();
-          return { error: 'Session expired' };
-        }
-        isPro = await checkPurchaseStatus(email);
-      }
-      return { email, isPro };
-    })();
-
-    const authTimeoutPromise = new Promise(r => setTimeout(() => r({ timeout: true }), 8000));
-    const authResult = await Promise.race([authPromise, authTimeoutPromise]);
-
-    if (authResult.timeout) {
-      console.warn(`${LOG_PREFIX} [${logId}]: Auth check timed out. Proceeding as free user.`);
-    }
-
-    if (authResult.error) return { status: 'error', message: authResult.error };
-
-    const email = authResult.email || null;
-    const isPro = authResult.isPro || false;
+    // We rely on the cached 'pro' status set by the UI or other operations
+    // This allows instantaneous scraping without network timeouts
+    const { pro } = await chrome.storage.sync.get(['pro']);
+    const isPro = !!pro;
 
     const { scrapedProducts } = await chrome.storage.local.get(['scrapedProducts']);
     const limit = isPro ? 10 : 2;
@@ -339,6 +310,7 @@ async function scrapeAndStore(logId = 'direct') {
     const scriptPromise = chrome.scripting.executeScript({
       target: { tabId: currentTab.id },
       func: getDetailedPageContent,
+      injectImmediately: true,
     });
 
     const scriptTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Scraping timed out (page too heavy)')), 15000));

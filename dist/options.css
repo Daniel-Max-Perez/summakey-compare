@@ -9,12 +9,12 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f2f2f7;
+  background-color: #e5e5ea;
   color: #1d1d1f;
   margin: 0;
   display: flex;
   justify-content: center;
-  padding: 30px 20px;
+  padding: 40px 20px;
   min-height: 100vh;
   font-size: 18px; /* High legibility base font */
 }
@@ -84,8 +84,8 @@ h2 {
   background-color: #ffffff;
   border-radius: 16px;
   padding: 30px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 6px rgba(0, 0, 0, 0.02);
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .card:hover {
@@ -142,9 +142,14 @@ h2 {
 .hotkey-card:hover .dropdown-icon,
 .upgrade-card:hover .dropdown-icon,
 .account-card:hover .dropdown-icon,
+.compliance-card:hover .dropdown-icon,
 .hotkey-card:focus-within .dropdown-icon,
 .upgrade-card:focus-within .dropdown-icon,
-.account-card:focus-within .dropdown-icon {
+.account-card:focus-within .dropdown-icon,
+.hotkey-card.expanded .dropdown-icon,
+.upgrade-card.expanded .dropdown-icon,
+.account-card.expanded .dropdown-icon,
+.compliance-card.expanded .dropdown-icon {
   transform: rotate(180deg);
   opacity: 1;
 }
@@ -161,10 +166,15 @@ h2 {
 .hotkey-card:hover .expandable-content,
 .upgrade-card:hover .expandable-content,
 .account-card:hover .expandable-content,
+.compliance-card:hover .expandable-content,
 .hotkey-card:focus-within .expandable-content,
 .upgrade-card:focus-within .expandable-content,
-.account-card:focus-within .expandable-content {
-  max-height: 500px;
+.account-card:focus-within .expandable-content,
+.hotkey-card.expanded .expandable-content,
+.upgrade-card.expanded .expandable-content,
+.account-card.expanded .expandable-content,
+.compliance-card.expanded .expandable-content {
+  max-height: 800px;
   opacity: 1;
   margin-top: 16px;
 }
@@ -231,7 +241,7 @@ h2 {
 }
 
 .restore-purchase a {
-  color: var(--brand-shopper-dark); /* Use dark green */
+  color: var(--brand-accent); /* Use dark green */
   text-decoration: none;
 }
 
@@ -314,7 +324,7 @@ code {
   font-family: "SF Mono", "Menlo", monospace; 
 }
 
-input[type="text"], input[type="email"], textarea {
+input[type="text"], input[type="email"], input[type="number"], textarea {
   width: 100%; 
   box-sizing: border-box; 
   padding: 10px; 
@@ -325,10 +335,32 @@ input[type="text"], input[type="email"], textarea {
   color: #1d1d1f;
 }
 
-input[type="text"]:focus, input[type="email"]:focus, textarea:focus { 
+input[type="text"]:focus, input[type="email"]:focus, input[type="number"]:focus, textarea:focus { 
   outline: none; 
   border-color: var(--brand-accent); 
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.2); 
+}
+
+/* --- Performance Settings UI --- */
+.performance-settings {
+  display: flex;
+  gap: 16px;
+  margin-top: 15px;
+}
+
+.performance-settings > div {
+  flex: 1;
+}
+
+.performance-settings .section-label {
+  margin-top: 0;
+  font-size: 14px;
+  color: #6e6e73;
+}
+
+.performance-settings input {
+  font-size: 16px;
+  padding: 8px 12px;
 }
 
 textarea { 
@@ -385,8 +417,8 @@ button:active {
 }
 
 button.secondary {
-  background-color: #e9e9eb;
-  color: var(--brand-shopper-dark); /* Use dark green for text */
+  background-color: #d1d1d6;
+  color: var(--brand-accent); /* Use dark green for text */
   font-weight: 700;
 }
 
@@ -421,7 +453,7 @@ button.clear-preset {
 .radio-option {
   display: flex; 
   align-items: center;
-  background-color: #f2f2f7;
+  background-color: #d1d1d6;
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
@@ -475,7 +507,7 @@ input[type="radio"] {
 }
 
 input:disabled, textarea:disabled {
-  background-color: #f2f2f7;
+  background-color: #d1d1d6;
   cursor: not-allowed;
   color: #8e8e93;
 }
@@ -529,7 +561,7 @@ input:disabled, textarea:disabled {
   gap: 12px;
   cursor: pointer;
   padding: 16px;
-  border: 2px solid #f2f2f7;
+  border: 2px solid #d1d1d6;
   border-radius: 12px;
   transition: all 0.2s ease;
   background: #fdfdfd;

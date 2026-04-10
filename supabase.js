@@ -62,7 +62,7 @@ async function createSessionToken(userId, email) {
     .upsert({ 
       id: userId, 
       email: email,
-      session_token: newToken
+      compare_session_token: newToken
     });
 
   if (error) {
@@ -104,7 +104,7 @@ async function validateSession() {
     console.log('SummaKey Compare: Fetching remote session token...');
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('session_token')
+      .select('compare_session_token')
       .eq('id', user.id)
       .single();
 
@@ -114,7 +114,7 @@ async function validateSession() {
     }
     console.log('SummaKey Compare: Remote token fetched.');
 
-    const isValid = data.session_token === localToken;
+    const isValid = data.compare_session_token === localToken;
     if (!isValid) {
       console.warn('SummaKey Compare: Session token mismatch — another device signed in.');
     }
@@ -151,7 +151,7 @@ async function checkPurchaseStatus(email) {
       .select('id')
       .eq('email', email)
       .eq('status', 'active')
-      .eq('product', 'Compare')
+      .in('product', ['Compare', 'Bundle'])
       .limit(1);
 
     if (error) {
@@ -159,7 +159,9 @@ async function checkPurchaseStatus(email) {
       return false;
     }
 
-    return data && data.length > 0;
+    const isPro = data && data.length > 0;
+    await chrome.storage.sync.set({ pro: isPro });
+    return isPro;
   } catch (err) {
     console.error('SummaKey Compare: Purchase check error:', err);
     return false;

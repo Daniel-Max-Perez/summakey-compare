@@ -188,37 +188,10 @@ async function scrapeAndStore(logId = 'direct') {
     }
 
     // --- Session validation & purchase-based gating ---
-    console.log(`SummaKey Compare [${logId}]: Validating auth...`);
-    
-    // Auth block with 8s hard timeout
-    const authPromise = (async () => {
-      const email = await getAuthenticatedEmail();
-      let isPro = false;
-      if (email) {
-        const sessionValid = await validateSession();
-        if (!sessionValid) {
-          console.warn(`SummaKey Compare [${logId}]: Session invalid.`);
-          await forceLogout();
-          await showNativeNotification("Session Expired", "Please sign in again.");
-          chrome.runtime.openOptionsPage();
-          return { error: 'Session expired' };
-        }
-        isPro = await checkPurchaseStatus(email);
-      }
-      return { email, isPro };
-    })();
-
-    const authTimeoutPromise = new Promise(r => setTimeout(() => r({ timeout: true }), 8000));
-    const authResult = await Promise.race([authPromise, authTimeoutPromise]);
-
-    if (authResult.timeout) {
-      console.warn(`SummaKey Compare [${logId}]: Auth check timed out. Proceeding as free user.`);
-    }
-
-    if (authResult.error) return { status: 'error', message: authResult.error };
-
-    const email = authResult.email || null;
-    const isPro = authResult.isPro || false;
+    // We rely on the cached 'pro' status set by the UI checking checkPurchaseStatus()
+    // This allows instantaneous scraping without network timeouts
+    const { pro } = await chrome.storage.sync.get(['pro']);
+    const isPro = !!pro;
 
     const { scrapedProducts } = await chrome.storage.local.get(['scrapedProducts']);
     const limit = isPro ? 10 : 2;
@@ -231,9 +204,9 @@ async function scrapeAndStore(logId = 'direct') {
       return { status: 'error', message: 'Limit reached' };
     }
 
-    // Get the active tab via lastFocusedWindow
+    // Get the active tab via currentWindow
     console.log(`SummaKey Compare [${logId}]: Querying active tab...`);
-    const [currentTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const [currentTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     if (!currentTab || !currentTab.id) {
       console.error(`SummaKey Compare [${logId}]: No active tab found.`);
@@ -260,50 +233,16 @@ async function scrapeAndStore(logId = 'direct') {
     // Add 15s timeout for script execution (Amazon can be heavy)
     const scriptPromise = chrome.scripting.executeScript({
       target: { tabId: currentTab.id },
+      injectImmediately: true,
       func: () => {
         try {
-          const startTime = Date.now();
-          const timeout = 5000;
-          const ELEMENT_NODE = 1;
-          const TEXT_NODE = 3;
           let content = '';
           const metaDesc = document.querySelector('meta[name="description"]');
           if (metaDesc && metaDesc.content) content += `[Page Description] ${metaDesc.content}\n\n`;
           if (document.title) content += `[Page Title] ${document.title}\n\n`;
           content += `[Page URL] ${window.location.href}\n\n`;
-          const maxTextLength = 40 * 1024;
-          const walker = document.createTreeWalker(document.body, 5, {
-            acceptNode: (node) => {
-              if (Date.now() - startTime > timeout) return 2;
-              if (node.nodeType === ELEMENT_NODE) {
-                const tag = node.tagName.toLowerCase();
-                if (['nav', 'footer', 'script', 'style', 'header', 'aside', 'svg', 'noscript', 'form', 'button'].includes(tag)) return 2;
-                if (node.hasAttribute('aria-hidden') && node.getAttribute('aria-hidden') === 'true') return 2;
-                if (tag === 'img' && node.alt) return 1;
-              } else if (node.nodeType === TEXT_NODE && node.textContent.trim().length > 0) return 1;
-              return 3;
-            }
-          });
-          let texts = [];
-          let node;
-          let nodeCount = 0;
-          let currentContentLength = content.length;
           
-          while ((node = walker.nextNode()) && (Date.now() - startTime < timeout)) {
-            if (nodeCount++ > 5000) break;
-            if (currentContentLength >= maxTextLength) break;
-            
-            if (node.nodeType === TEXT_NODE) {
-              const text = node.textContent.trim();
-              texts.push(text);
-              currentContentLength += text.length + 1; // +1 for the space that join will add
-            } else if (node.tagName && node.tagName.toLowerCase() === 'img') {
-              const text = `[Image: ${node.alt}]`;
-              texts.push(text);
-              currentContentLength += text.length + 1;
-            }
-          }
-          content += texts.join(' ');
+          content += document.body.innerText;
           return content;
         } catch (e) { return `ERROR: ${e.message}`; }
       }
@@ -411,11 +350,13 @@ async function compareProducts() {
 
   // --- THIS IS THE FIX ---
 
-  // Get the destination URL that the user saved in options
+  // Get the destination URL
   const { destinationUrl } = await chrome.storage.sync.get('destinationUrl');
 
   // If it's not set, default to Gemini. Otherwise, use the saved one.
   const destinationURL = destinationUrl || 'https://gemini.google.com/app';
+  const AI_LOAD_DELAY = 0;
+  const UI_DELAY = 0;
 
   // --- END OF FIX --- 
 
@@ -427,55 +368,57 @@ async function compareProducts() {
   setTimeout(async () => {
     const llmTab = await chrome.tabs.create({ url: destinationURL, active: true });
 
-    // Wait for page to be interactive, not just complete
-    let attempts = 0;
-    const maxWaitAttempts = 20; // 10 seconds total (20 * 500ms)
-
-    const waitForPage = setInterval(async () => {
-      attempts++;
+    // Wait for the page to be complete using an event listener rather than arbitrary polling
+    const injectScript = async () => {
       try {
-        const tab = await chrome.tabs.get(llmTab.id);
-        if (tab.status === 'complete') {
-          clearInterval(waitForPage);
-
-          // Wait additional time for React/SPA to initialize
-          setTimeout(async () => {
-            try {
-              await chrome.scripting.executeScript({
-                target: { tabId: llmTab.id },
-                func: pasteAndSubmitUrl,
-                args: [finalPrompt],
-              });
-              console.log('SummaKey Compare: Script injected successfully');
-            } catch (error) {
-              console.error('SummaKey Compare: Error injecting script:', error);
-              // Try alternative injection method
-              try {
-                await chrome.scripting.executeScript({
-                  target: { tabId: llmTab.id },
-                  func: pasteAndSubmitUrl,
-                  args: [finalPrompt],
-                });
-                console.log('SummaKey Compare: Alternative injection method succeeded');
-              } catch (error2) {
-                console.error('SummaKey Compare: Alternative injection also failed:', error2);
-              }
-            }
-          }, 2000); // 2 second delay for React apps
-        }
+        await chrome.scripting.executeScript({
+          target: { tabId: llmTab.id },
+          func: pasteAndSubmitUrl,
+          args: [finalPrompt],
+        });
+        console.log('SummaKey Compare: Script injected successfully');
       } catch (error) {
-        console.error('SummaKey Shopper: Error checking tab status:', error);
+        console.error('SummaKey Compare: Error injecting script:', error);
+        // Try alternative injection method
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: llmTab.id },
+            func: pasteAndSubmitUrl,
+            args: [finalPrompt],
+          });
+          console.log('SummaKey Compare: Alternative injection method succeeded');
+        } catch (error2) {
+          console.error('SummaKey Compare: Alternative injection also failed:', error2);
+        }
       }
+    };
 
-      if (attempts >= maxWaitAttempts) {
-        clearInterval(waitForPage);
-        console.error('SummaKey Shopper: Page did not load in time');
+    const tabUpdateListener = (tabId, changeInfo, tab) => {
+      if (tabId === llmTab.id && changeInfo.status === 'complete') {
+        chrome.tabs.onUpdated.removeListener(tabUpdateListener);
+        clearTimeout(fallbackTimeout);
+        setTimeout(injectScript, AI_LOAD_DELAY);
       }
-    }, 500); // Check every 500ms
+    };
+
+    chrome.tabs.onUpdated.addListener(tabUpdateListener);
+    
+    // In case the tab finishes before the listener is attached, check it manually
+    const initialTab = await chrome.tabs.get(llmTab.id);
+    if (initialTab.status === 'complete') {
+      chrome.tabs.onUpdated.removeListener(tabUpdateListener);
+      setTimeout(injectScript, AI_LOAD_DELAY);
+    }
+    
+    // Fallback: maximum 10 seconds wait (if onUpdated doesn't catch it properly)
+    const fallbackTimeout = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(tabUpdateListener);
+      console.error('SummaKey Shopper: Page did not load in time');
+    }, 10000);
 
     // Clear the list after comparing
     await clearProductList();
-  }, 200); // 200ms delay to allow notification banner to appear
+  }, UI_DELAY); // dynamic delay to allow notification banner to appear
 }
 
 // Clear the product list

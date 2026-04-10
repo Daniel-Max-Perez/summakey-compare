@@ -25,7 +25,7 @@ function copyExtensionAssets() {
         'supabase.js',
         'google-analytics.js',
         'LICENSE.txt',
-        'promo_screenshot_compare_1280x800.png',
+        'promo_screenshot_compare.png',
         'icon128.png'
       ];
 

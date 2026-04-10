@@ -615,35 +615,9 @@ Here is the data:
         chrome.tabs.create({ url: chrome.runtime.getURL("get-started.html") });
         return { status: "error", message: "Consent required" };
       }
-      console.log(`${LOG_PREFIX} [${logId}]: Validating auth...`);
-      const authPromise = (async () => {
-        const email2 = await getAuthenticatedEmail();
-        let isPro2 = false;
-        if (email2) {
-          const sessionValid = await validateSession();
-          if (!sessionValid) {
-            console.warn(`${LOG_PREFIX} [${logId}]: Session invalid.`);
-            await forceLogout();
-            await showNotification({
-              title: "Session Expired",
-              message: "Please sign in again.",
-              notificationId: NOTIFICATION_ID
-            });
-            chrome.runtime.openOptionsPage();
-            return { error: "Session expired" };
-          }
-          isPro2 = await checkPurchaseStatus(email2);
-        }
-        return { email: email2, isPro: isPro2 };
-      })();
-      const authTimeoutPromise = new Promise((r) => setTimeout(() => r({ timeout: true }), 8e3));
-      const authResult = await Promise.race([authPromise, authTimeoutPromise]);
-      if (authResult.timeout) {
-        console.warn(`${LOG_PREFIX} [${logId}]: Auth check timed out. Proceeding as free user.`);
-      }
-      if (authResult.error) return { status: "error", message: authResult.error };
-      const email = authResult.email || null;
-      const isPro = authResult.isPro || false;
+      console.log(`${LOG_PREFIX} [${logId}]: Checking cached auth status...`);
+      const { pro } = await chrome.storage.sync.get(["pro"]);
+      const isPro = !!pro;
       const { scrapedProducts } = await chrome.storage.local.get(["scrapedProducts"]);
       const limit = isPro ? 10 : 2;
       const currentList = scrapedProducts || [];
@@ -681,7 +655,8 @@ Here is the data:
       let pageContent = "";
       const scriptPromise = chrome.scripting.executeScript({
         target: { tabId: currentTab.id },
-        func: getDetailedPageContent
+        func: getDetailedPageContent,
+        injectImmediately: true
       });
       const scriptTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Scraping timed out (page too heavy)")), 15e3));
       try {

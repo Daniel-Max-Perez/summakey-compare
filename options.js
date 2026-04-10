@@ -226,7 +226,8 @@ Conclude with this final analysis:
 
     // Clear existing options before adding (prevents duplicates on re-init)
     llmSelect.innerHTML = '';
-
+    
+    // Check if the current destinationUrl is one of the presets
     presetLLMs.forEach(llm => {
       const option = document.createElement('option');
       option.value = llm.url;
@@ -250,22 +251,21 @@ Conclude with this final analysis:
       customOption.textContent = 'Custom URL';
     }
 
-    if (isCustom) {
-      if (destinationUrl) {
-        llmSelect.value = 'custom';
-        urlInput.style.display = 'block';
-        customUrlLabel.style.display = 'block';
-        urlInput.value = destinationUrl;
-        if (!isPro) urlInput.disabled = true;
-      } else {
-        llmSelect.value = presetLLMs[0].url;
-        urlInput.value = presetLLMs[0].url;
-        saveDestinationUrl(presetLLMs[0].url);
-      }
-    } else {
+    if (isCustom && destinationUrl !== undefined) {
+      llmSelect.value = 'custom';
+      urlInput.style.display = 'block';
+      customUrlLabel.style.display = 'block';
       urlInput.value = destinationUrl;
+      if (!isPro) urlInput.disabled = true;
+    } else if (!isCustom) {
+      urlInput.value = destinationUrl || presetLLMs[0].url;
       urlInput.style.display = 'none';
       customUrlLabel.style.display = 'none';
+    } else {
+      // First time initialization
+      llmSelect.value = presetLLMs[0].url;
+      urlInput.value = presetLLMs[0].url;
+      saveDestinationUrl(presetLLMs[0].url);
     }
   };
 

@@ -41,20 +41,25 @@ document.addEventListener('DOMContentLoaded', () => {
       countEl.innerHTML = `${count}<span>/${limit}</span>`;
     }
 
+    // Optimistically load from storage first to avoid showing 0/2 while waiting
+    loadFromStorage();
+
     // Check auth & purchase state from background
     chrome.runtime.sendMessage({ action: 'getAuthState' }, (response) => {
       console.log(`${LOG_PREFIX}: Auth state:`, response);
       if (chrome.runtime.lastError) {
         console.warn(`${LOG_PREFIX}: Message error:`, chrome.runtime.lastError);
-        loadFromStorage();
+        // loadFromStorage(); // already loaded above
         return;
       }
 
       if (response && response.email) {
         currentLimit = response.isPro ? 10 : 2;
+        chrome.storage.sync.set({ pro: response.isPro });
         if (authBanner) authBanner.style.display = 'none';
       } else {
         currentLimit = 2;
+        chrome.storage.sync.set({ pro: false });
         if (authBanner) authBanner.style.display = 'block';
       }
 
@@ -97,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         addBtn.querySelector('.btn-text').textContent = 'Add Current Page';
         addBtn.disabled = false;
         alert('Action timed out. Please refresh the page and try again.');
-      }, 10000);
+      }, 25000);
 
       chrome.runtime.sendMessage({ action: 'scrapeCurrentPage' }, (response) => {
         clearTimeout(timeoutId);

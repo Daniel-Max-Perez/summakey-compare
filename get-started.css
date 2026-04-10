@@ -3,7 +3,7 @@ body {
   background-color: #0c0c0c;
   color: #e0e0e0;
   margin: 0;
-  padding: 60px 20px;
+  padding: 60px 20px 100px 20px;
   display: flex;
   justify-content: center;
   min-height: 100vh;
@@ -51,7 +51,7 @@ h1 {
   background: #161616;
   border: 1px solid #262626;
   border-radius: 20px;
-  padding: 28px;
+  padding: 24px;
   margin-bottom: 24px;
   transition: all 0.3s ease;
 }
@@ -63,8 +63,20 @@ h1 {
 .card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.card-header .icon {
+  font-size: 1.5rem;
+  width: 48px;
+  height: 48px;
+  background: #222;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .card h3 {
@@ -90,11 +102,30 @@ h1 {
   margin: 0 0 24px 0;
 }
 
+/* Align settings card text with accordion content (88px total from left) */
+.settings-card .card-body-text {
+  margin-left: 64px;
+  width: calc(100% - 64px);
+}
+
+.settings-card .card-body-text:first-of-type {
+  margin-bottom: 8px;
+}
+
+.settings-card {
+  margin-top: 24px;
+}
+
 /* --- Privacy Action --- */
 .consent-action {
   background: #1c1c1c;
   padding: 16px;
   border-radius: 12px;
+}
+
+.highlight-brand {
+  color: var(--brand-compare);
+  font-weight: 700;
 }
 
 .custom-checkbox {
@@ -130,8 +161,8 @@ h1 {
 }
 
 .custom-checkbox input:checked ~ .checkmark {
-  background-color: var(--brand-shopper);
-  border-color: var(--brand-shopper);
+  background-color: var(--brand-compare);
+  border-color: var(--brand-compare);
 }
 
 .checkmark:after {
@@ -158,7 +189,7 @@ h1 {
 }
 
 .label-text a {
-  color: var(--brand-shopper);
+  color: var(--brand-compare);
   text-decoration: none;
   font-weight: 600;
 }
@@ -171,7 +202,7 @@ h1 {
 .accordion {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 24px;
 }
 
 .accordion-item {
@@ -259,8 +290,8 @@ h1 {
 .step-num {
   font-size: 0.8rem;
   font-weight: 800;
-  color: var(--brand-shopper);
-  background: var(--brand-shopper-dim);
+  color: var(--brand-compare);
+  background: var(--brand-compare-dim);
   width: 20px;
   height: 20px;
   border-radius: 50%;
