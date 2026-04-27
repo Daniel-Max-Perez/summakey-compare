@@ -252,51 +252,81 @@ h2 {
 /* --- Preset Cards --- */
 #presets-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: 1fr;
+  gap: 24px;
   margin-bottom: 30px;
 }
 
 .preset-card {
-  border: 1px solid #e0e0e0;
   display: flex;
   flex-direction: column;
 }
 
-.card-header { 
-  display: flex; 
-  align-items: center; 
-  gap: 10px; 
-  margin-bottom: 10px; 
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.preset-expandable-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: max-height 0.4s ease, opacity 0.3s ease, margin-top 0.3s ease;
+}
+
+.preset-card.expanded .preset-expandable-content {
+  max-height: 1000px;
+  opacity: 1;
+  margin-top: 10px;
+}
+
+.preset-card .dropdown-icon {
+  transition: transform 0.4s ease;
+  opacity: 0.6;
+}
+
+.preset-card.expanded .dropdown-icon {
+  transform: rotate(180deg);
+  opacity: 1;
+}
+
+.preset-card:hover .dropdown-icon {
+  opacity: 1;
 }
 
 .preset-number {
-  font-size: 14px; /* No change, this is a badge */
-  font-weight: 600;
-  color: #8e8e93;
-  padding: 4px 8px;
-  border-radius: 6px;
-  background-color: #e9e9eb;
-  align-self: flex-start;
-  margin-right: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-accent);
+  padding: 6px 12px;
+  border-radius: 8px;
+  background-color: rgba(0, 128, 96, 0.1); /* compare brand green */
+  align-self: center;
+  margin-right: 4px;
 }
 
 .preset-name {
-  font-size: 24px; /* Larger */
-  font-weight: 600;
-  border: none;
-  padding: 5px 0;
+  font-size: 22px;
+  font-weight: 700;
+  border: 1px solid transparent;
+  padding: 8px 12px;
+  border-radius: 10px;
   flex-grow: 1;
   background-color: transparent;
+  transition: all 0.2s ease;
+  color: #1d1d1f;
 }
 
 .preset-name:focus {
   outline: none;
-  background-color: #f2f2f7; 
-  border-radius: 6px;
-  padding: 5px 10px;
-  border-color: var(--brand-accent); 
-  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.25);
+  background-color: #ffffff;
+  border-color: var(--brand-accent);
+  box-shadow: 0 0 0 4px rgba(0, 128, 96, 0.15); /* compare brand green */
 }
 
 /* --- Form Elements --- */

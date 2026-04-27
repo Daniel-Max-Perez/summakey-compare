@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function initializeStandardApp() {
     const countEl = document.getElementById('product-count');
     const addBtn = document.getElementById('add-button');
-    const compareBtn = document.getElementById('compare-button');
+    const presetList = document.getElementById('preset-list');
     const clearLastBtn = document.getElementById('clear-last-button');
     const clearAllBtn = document.getElementById('clear-all-button');
     const optionsLink = document.getElementById('open-options');
@@ -104,33 +104,76 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Action timed out. Please refresh the page and try again.');
       }, 25000);
 
-      chrome.runtime.sendMessage({ action: 'scrapeCurrentPage' }, (response) => {
-        clearTimeout(timeoutId);
-        addBtn.classList.remove('loading');
-        addBtn.querySelector('.btn-text').textContent = 'Add Current Page';
-        addBtn.disabled = false;
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        const activeTab = tabs[0];
+        chrome.runtime.sendMessage({ action: 'scrapeCurrentPage', tab: activeTab }, (response) => {
+          clearTimeout(timeoutId);
+          addBtn.classList.remove('loading');
+          addBtn.querySelector('.btn-text').textContent = 'Add Current Page';
+          addBtn.disabled = false;
 
-        if (response && response.status === 'scraped') {
-          console.log(`${LOG_PREFIX}: Scrape successful.`);
-          setTimeout(() => window.close(), 400);
-        } else {
-          const errMsg = (response && response.message) || 'Communication error with background script.';
-          console.error(`${LOG_PREFIX}: Scrape failed:`, errMsg);
-          alert(`Error: ${errMsg}`);
-        }
+          if (response && response.status === 'scraped') {
+            console.log(`${LOG_PREFIX}: Scrape successful.`);
+            setTimeout(() => window.close(), 400);
+          } else {
+            const errMsg = (response && response.message) || 'Communication error with background script.';
+            console.error(`${LOG_PREFIX}: Scrape failed:`, errMsg);
+            alert(`Error: ${errMsg}`);
+          }
+        });
       });
     });
 
-    compareBtn.addEventListener('click', () => {
-      if (currentCount === 0) {
-        alert('Please add at least one page to compare.');
-        return;
+    chrome.storage.sync.get({ presets: [], pro: false }, (data) => {
+      if (presetList) {
+        let presetsToShow = data.presets;
+        
+        if (!presetsToShow || presetsToShow.length < 4) {
+          presetsToShow = [];
+          for (let i = 0; i < 4; i++) {
+            presetsToShow.push({
+              name: i === 0 ? 'Comparison' : `Preset ${i + 1}`
+            });
+          }
+        }
+
+        presetsToShow.forEach((preset, index) => {
+          const li = document.createElement('li');
+          li.className = 'preset-item';
+          const isLocked = (index > 0 && !data.pro);
+          
+          li.innerHTML = `
+            <div class="preset-number">${index + 1}</div>
+            <div class="preset-name">${preset.name || `Preset ${index + 1}`}</div>
+            ${isLocked ? '<span class="lock-icon">🔒</span>' : ''}
+          `;
+
+          if (isLocked) {
+            li.classList.add('locked');
+            li.addEventListener('click', () => {
+              chrome.runtime.openOptionsPage();
+              window.close();
+            });
+          } else {
+            li.addEventListener('click', (e) => {
+              e.preventDefault();
+              if (currentCount === 0) {
+                alert('Please add at least one page to compare.');
+                return;
+              }
+              li.style.opacity = '0.5'; // Simple visual feedback
+              chrome.runtime.sendMessage({
+                action: 'compareProducts',
+                presetIndex: index
+              }, () => {
+                setTimeout(() => window.close(), 100);
+              });
+            });
+          }
+
+          presetList.appendChild(li);
+        });
       }
-      compareBtn.classList.add('loading');
-      compareBtn.querySelector('.btn-text').textContent = 'Generating...';
-      chrome.runtime.sendMessage({ action: 'compareProducts' }, () => {
-        setTimeout(() => window.close(), 100);
-      });
     });
 
     clearLastBtn.addEventListener('click', () => {

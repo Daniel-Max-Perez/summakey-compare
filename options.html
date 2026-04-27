@@ -48,15 +48,15 @@
               <input type="radio" name="compareBillingInterval" value="yearly" checked>
               <div class="plan-info">
                 <span class="plan-name">Yearly Plan</span>
-                <span class="plan-price">$30 / year</span>
+                <span class="plan-price">$59.99 / year</span>
               </div>
-              <span class="plan-tag">Save 50%</span>
+              <span class="plan-tag">Save 37%</span>
             </label>
             <label class="billing-option">
               <input type="radio" name="compareBillingInterval" value="monthly">
               <div class="plan-info">
                 <span class="plan-name">Monthly Plan</span>
-                <span class="plan-price">$5 / month</span>
+                <span class="plan-price">$7.99 / month</span>
               </div>
             </label>
           </div>
@@ -103,35 +103,7 @@
 
     </div>
 
-    <!-- Move destination-card out of top-card-container so it stays visible as its own section -->
-    <div class="card" id="destination-card" style="margin-top: 20px;">
-      <h2>Destination AI Chat</h2>
-      <p class="description"><strong>Pro users</strong> can unlock custom routing URLs.</p>
-
-      <select id="llm-select-main" class="llm-select">
-      </select>
-
-      <label for="llmUrl-main" class="section-label custom-url-label" style="margin-top: 15px;">Custom URL</label>
-      <input type="text" id="llmUrl-main" class="llmUrl" placeholder="https://">
-
-    </div>
-
-    <div class="card" id="free-prompt-card" style="margin-top: 20px;">
-      <h2>Free Version Prompt</h2>
-      <p class="description"><strong>Upgrade to
-          Pro</strong> to write your own rules and get personalized comparisons.</p>
-      <textarea id="free-prompt-textarea" disabled rows="12"></textarea>
-    </div>
-
-    <div class="card" id="pro-prompt-card" style="margin-top: 20px; display: none;">
-      <h2>Your Custom Pro Prompt</h2>
-      <p class="description">This is your editable Pro prompt. Use <code>{{content}}</code> as the placeholder for your
-        scraped data. The app will join all items with <code>--- NEXT ITEM TO COMPARE ---</code> before appending them
-        to this prompt.</p>
-      <textarea id="pro-prompt-textarea" rows="12"></textarea>
-      <button id="save-prompt" class="button">Save Custom Prompt</button>
-      <div class="status" id="save-status"></div>
-      <div class="status warning" id="prompt-warning" style="display: none; color: #ff3b30; margin-top: 10px; font-weight: 600;"></div>
+    <div id="presets-grid">
     </div>
 
     <div class="card compliance-card" style="margin-top: 20px;">
@@ -160,6 +132,38 @@
     </div>
 
   </div>
+
+  <template id="preset-template">
+    <div class="card preset-card">
+      <div class="card-header">
+        <div class="preset-number"></div>
+        <input type="text" class="preset-name" placeholder="Preset Name">
+        <button class="clear-preset secondary">Clear</button>
+        <svg class="dropdown-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left: 8px; flex-shrink: 0; cursor: pointer; color: #6e6e73;"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+
+      <div class="preset-expandable-content">
+        <label for="llm-select" class="section-label" style="margin-top: 15px;">Destination AI Chat</label>
+        <select class="llm-select">
+        </select>
+
+        <label for="llmUrl" class="section-label custom-url-label">Custom URL</label>
+        <input type="text" class="llmUrl" placeholder="https://">
+
+        <label for="promptTemplate" class="section-label" style="margin-top: 15px;">Custom Prompt Template</label>
+        <textarea class="promptTemplate" rows="5"></textarea>
+        <p class="description prompt-warning" style="color: #ff3b30; display: none; margin-top: 8px; font-weight: 500;">
+          Warning: You should use <code>{{content}}</code> in your prompt or the AI won't receive the page content.
+        </p>
+        
+        <div class="button-container">
+          <button class="resetPrompt secondary">Reset Prompt</button>
+          <button class="saveSettings">Save Preset</button>
+        </div>
+        <div class="status"></div>
+      </div>
+    </div>
+  </template>
 
   <script src="supabase-bundle.js"></script>
   <script src="supabase.js"></script>

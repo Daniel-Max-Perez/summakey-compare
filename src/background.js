@@ -1,12 +1,5 @@
 /**
  * SummaKey Compare — Background Service Worker
- *
- * Refactored to use @summakey/shared-utils for LLM chatbox injection,
- * notification utilities, and navigation.
- *
- * NOTE: Supabase is loaded via importScripts in the root background.js
- * (the non-bundled entry). The Vite build produces a single IIFE that
- * is loaded AFTER supabase-bundle.js and supabase.js are imported.
  */
 
 import {
@@ -142,7 +135,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log(`${LOG_PREFIX} [${LOG_ID}]: Received message:`, request.action);
 
   if (request.action === 'scrapeCurrentPage' || request.action === 'scrape') {
-    scrapeAndStore(LOG_ID)
+    scrapeAndStore(LOG_ID, request.tab)
       .then((result) => {
         console.log(`${LOG_PREFIX} [${LOG_ID}]: Scrape successful.`);
         sendResponse(result || { status: 'scraped' });
@@ -155,7 +148,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'compareProducts') {
-    compareProducts()
+    compareProducts(request.presetIndex)
       .then(() => sendResponse({ status: 'comparing' }))
       .catch((error) => {
         console.error(`${LOG_PREFIX} [${LOG_ID}]: Compare error:`, error);
@@ -224,7 +217,7 @@ chrome.commands.onCommand.addListener((command) => {
   if (command === 'scrape_current_page') {
     scrapeAndStore('hotkey');
   } else if (command === 'compare_products') {
-    compareProducts();
+    compareProducts(0);
   }
 });
 
@@ -232,7 +225,7 @@ chrome.commands.onCommand.addListener((command) => {
 // Scrape & Store
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function scrapeAndStore(logId = 'direct') {
+async function scrapeAndStore(logId = 'direct', explicitTab = null) {
   console.log(`${LOG_PREFIX} [${logId}]: scrapeAndStore() starting...`);
   
   try {
@@ -272,9 +265,13 @@ async function scrapeAndStore(logId = 'direct') {
       return { status: 'error', message: 'List full' };
     }
 
-    // Get the active tab via lastFocusedWindow
-    console.log(`${LOG_PREFIX} [${logId}]: Querying active tab...`);
-    const [currentTab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    // Get the active tab via the provided explicitTab, or fallback to querying
+    console.log(`${LOG_PREFIX} [${logId}]: Identifying active tab...`);
+    let currentTab = explicitTab;
+    if (!currentTab) {
+      const tabs = await chrome.tabs.query({ active: true });
+      currentTab = tabs.find(t => !t.url.startsWith('chrome-extension://')) || tabs[0];
+    }
 
     if (!currentTab || !currentTab.id) {
       console.error(`${LOG_PREFIX} [${logId}]: No active tab found.`);
@@ -373,7 +370,7 @@ async function scrapeAndStore(logId = 'direct') {
 // Compare Products
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function compareProducts() {
+async function compareProducts(presetIndex = 0) {
   const { hasConsented } = await chrome.storage.sync.get(['hasConsented']);
   if (!hasConsented) {
     await showNotification({
@@ -403,7 +400,18 @@ async function compareProducts() {
     isPro = await checkPurchaseStatus(email);
   }
 
-  const { proPrompt } = await chrome.storage.sync.get(['proPrompt']);
+  // Enforce Pro gating on background side
+  if (presetIndex > 0 && !isPro) {
+    await showNotification({
+      title: 'Pro Required',
+      message: 'This preset requires SummaKey Compare Pro.',
+      notificationId: NOTIFICATION_ID,
+    });
+    chrome.runtime.openOptionsPage();
+    return;
+  }
+
+  const { presets } = await chrome.storage.sync.get(['presets']);
   const { scrapedProducts } = await chrome.storage.local.get(['scrapedProducts']);
   const currentList = scrapedProducts || [];
 
@@ -419,18 +427,27 @@ async function compareProducts() {
   let finalPrompt = '';
   // Support both old string format and new object format
   const allContent = currentList
-    .map(p => (typeof p === 'string' ? p : (p.content || '')))
+    .map(p => {
+      const titleText = p.title ? `Page: ${p.title}\n` : '';
+      const urlText = p.url ? `URL: ${p.url}\n` : '';
+      const textContent = typeof p === 'string' ? p : (p.content || '');
+      return `${titleText}${urlText}${textContent}`;
+    })
     .join('\n\n--- NEXT ITEM TO COMPARE ---\n\n');
 
-  if (isPro && proPrompt) {
-    finalPrompt = proPrompt.replace('{{content}}', allContent);
+  let activePreset = null;
+  if (presets && presets[presetIndex]) {
+    activePreset = presets[presetIndex];
+  }
+
+  if (activePreset && activePreset.prompt) {
+    finalPrompt = activePreset.prompt.replace('{{content}}', allContent);
   } else {
     finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace('{{content}}', allContent);
   }
 
   // Get destination URL
-  const { destinationUrl } = await chrome.storage.sync.get('destinationUrl');
-  const destinationURL = destinationUrl || 'https://gemini.google.com/app';
+  const destinationURL = (activePreset && activePreset.url) ? activePreset.url : 'https://gemini.google.com/app';
 
   // Show notification
   await showNotification({

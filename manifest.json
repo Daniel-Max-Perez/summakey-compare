@@ -31,7 +31,7 @@
     "128": "icons/icon128.png"
   },
   "background": {
-    "service_worker": "sw-loader.js"
+    "service_worker": "background.js"
   },
   "action": {
     "default_title": "SummaKey Compare - Side-by-Side AI Research Tool",

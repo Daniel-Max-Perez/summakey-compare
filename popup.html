@@ -196,6 +196,110 @@
       color: white;
     }
 
+    #preset-list {
+      list-style: none;
+      padding: 0;
+      margin: 16px 0 0 0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      overflow-y: auto;
+      max-height: 250px; /* Leave room for the buttons above */
+      padding-right: 4px;
+    }
+
+    #preset-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    #preset-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+    }
+    #preset-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    #preset-list::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .preset-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(5px);
+    }
+
+    .preset-item:hover {
+      background: rgba(255, 255, 255, 0.08); 
+      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px); 
+      box-shadow: 0 4px 12px rgba(5, 255, 102, 0.2); /* Brand green shadow */
+    }
+
+    .preset-item:active {
+      transform: scale(0.98);
+    }
+
+    .preset-item.locked {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .preset-item.locked:hover {
+      transform: none;
+      background: var(--glass-bg);
+      border-color: var(--glass-border);
+      box-shadow: none;
+    }
+
+    .preset-number {
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--gradient-green); /* Brand green */
+      color: #000;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      margin-right: 12px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .preset-item.locked .preset-number {
+      background: #333;
+      color: #777;
+      box-shadow: none;
+    }
+
+    .preset-name {
+      font-size: 15px; 
+      font-weight: 600; 
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex-grow: 1;
+      color: #dfdfdf;
+    }
+
+    .preset-item:hover .preset-name {
+      color: #fff;
+    }
+
+    .lock-icon {
+      font-size: 12px;
+      margin-left: 8px;
+      opacity: 0.5;
+    }
+
     .footer {
       margin-top: 8px;
       padding-top: 16px;
@@ -264,16 +368,16 @@
         <div class="loading-spinner"></div>
         <span class="btn-text">Add Current Page</span>
       </button>
-      <button id="compare-button" class="button primary purple">
-        <div class="loading-spinner"></div>
-        <span class="btn-text">Compare Now</span>
-      </button>
     </div>
 
     <div class="tertiary-buttons">
       <button id="clear-last-button" class="button tertiary">Undo Last</button>
       <button id="clear-all-button" class="button tertiary">Clear List</button>
     </div>
+
+    <ul id="preset-list">
+      <!-- Populated via JS -->
+    </ul>
 
     <div class="footer">
       <a href="#" id="open-options">Settings & Upgrade ⚙️</a>

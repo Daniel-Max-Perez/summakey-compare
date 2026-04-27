@@ -52,19 +52,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const signOutBtn = document.getElementById('signOutBtn');
   const accountCard = document.getElementById('account-card');
 
-  // --- Prompt Card Elements ---
-  const freePromptCard = document.getElementById('free-prompt-card');
-  const proPromptCard = document.getElementById('pro-prompt-card');
-  const saveButton = document.getElementById('save-prompt');
-  const proTextarea = document.getElementById('pro-prompt-textarea');
-  const freeTextarea = document.getElementById('free-prompt-textarea');
-  const saveStatus = document.getElementById('save-status');
-  const promptWarning = document.getElementById('prompt-warning');
-
-  // --- Dropdown Elements ---
-  const llmSelect = document.getElementById('llm-select-main');
-  const urlInput = document.getElementById('llmUrl-main');
-  const customUrlLabel = document.querySelector('.custom-url-label');
+  // --- Preset Elements ---
+  const presetsGrid = document.getElementById('presets-grid');
+  const presetTemplate = document.getElementById('preset-template');
+  
+  let appState = {
+    presets: [],
+    isPro: false,
+    email: null
+  };
+  const maxPresets = 4;
 
   // --- Dropdown Data ---
   const presetLLMs = [
@@ -76,54 +73,47 @@ document.addEventListener('DOMContentLoaded', () => {
     { name: "DeepSeek", url: "https://chat.deepseek.com/" }
   ];
 
-  // --- Default Prompt ---
-  const DEFAULT_COMPARE_PROMPT = `You are an expert product analyst and data-driven shopping assistant. Your sole mission is to help me make the best, fastest, and most informed buying decision possible, based only on the raw text data I provide.
+  const defaultPrompt = `{{content}}`;
+  const defaultPromptPreset1 = `You are an expert product analyst and data-driven shopping assistant. Your sole mission is to help me make the best, fastest, and most informed buying decision possible, based only on the raw text data I provide.
 
 My Priorities (Default):
-
 1.  Value: What is the best price-to-performance ratio?
-
 2.  Key Features: How do the core specs and features compare?
-
 3.  Quality: Based on reviews or materials mentioned, which seems most reliable?
 
 Your Task & Output Structure:
-
 You must follow this 4-step structure precisely. Do not add any conversational text outside of this structure. The raw text for each product is separated by --- NEXT ITEM TO COMPARE ---.
 
 ---
 
 ## 1. Top Recommendation
-
 Start here. Based on my default priorities, state your #1 Top Recommendation and provide a 2-sentence justification for why it's the best choice.
 
 ## 2. Comparison Table
-
 Create a comprehensive markdown table comparing all products.
-
 * The first column must be the Page Name.
-
 * Subsequent columns must be for Price and all other Key Features (e.g., Specs, Size, etc.).
-
 * Crucial Row: Include a "Key Differentiator" row that explains the single most important difference between the products (e.g., "Screen Technology," "Battery Type," "Warranty").
 
 ## 3. Pros & Cons Analysis
-
 Create a "Pros & Cons" bulleted list for each product. Each point must be concise and directly related to my stated priorities (Value, Features, Quality).
 
 ## 4. Final Verdict
-
 Conclude with this final analysis:
-
 * Best for Price: State which product is the best choice if only the lowest price matters.
-
 * Best for Quality/Features: State which product is the best choice if only the best features and quality matter, regardless of price.
-
 * Missing Information: Explicitly state any key information (like price, warranty, or a key spec) that was not found in the provided text for any page.
 
 ---
 
 {{content}}`;
+
+  const defaultPresets = [
+    { name: 'Comparison', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset1 },
+    { name: 'Feature Matrix', url: 'https://gemini.google.com/app', prompt: defaultPrompt },
+    { name: 'Pros & Cons', url: 'https://gemini.google.com/app', prompt: defaultPrompt },
+    { name: 'Value Analysis', url: 'https://gemini.google.com/app', prompt: defaultPrompt }
+  ];
 
   // --- Monetization Functions ---
   const getOrCreateInstallationId = async () => {
@@ -157,34 +147,65 @@ Conclude with this final analysis:
 
   // --- MAIN APP INITIALIZATION ---
   const initializeApp = async () => {
-    // 1. Check if user is authenticated via Supabase
     const email = await getAuthenticatedEmail();
 
-    // 2. Validate session if email is present
     if (email) {
       const isSessionValid = await validateSession();
       if (!isSessionValid) {
         console.warn('SummaKey Compare: Session invalid or expired. Logging out.');
         await forceLogout();
-        await initializeApp(); // Re-init as signed out
+        await initializeApp(); 
         return;
       }
     }
 
-    if (email) {
-      // User is signed in — check purchase status
-      const isPro = await checkPurchaseStatus(email);
-      showSignedInUI(email, isPro);
-      updateUIForProStatus(isPro);
-      setupDestinationDropdown(isPro);
-      setupPromptCards(isPro);
-    } else {
-      // Not signed in — show sign-in UI
-      showAuthState('signed-out');
-      updateUIForProStatus(false);
-      setupDestinationDropdown(false);
-      setupPromptCards(false);
-    }
+    chrome.storage.sync.get({ presets: [], pro: false }, async (data) => {
+      let needsUpdate = false;
+
+      if (data.presets.length === 0 || data.presets.length < maxPresets) {
+        data.presets = JSON.parse(JSON.stringify(defaultPresets));
+        needsUpdate = true;
+      }
+
+      while (data.presets.length < maxPresets) {
+        data.presets.push({ name: `Preset ${data.presets.length + 1}`, url: '', prompt: defaultPrompt });
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        await new Promise(resolve => chrome.storage.sync.set({ presets: data.presets }, resolve));
+      }
+
+      appState.presets = data.presets;
+
+      if (email) {
+        const isPro = await checkPurchaseStatus(email);
+        appState.isPro = isPro;
+        appState.email = email;
+        
+        await chrome.storage.sync.set({ pro: isPro });
+
+        showSignedInUI(email, isPro);
+        renderUI();
+
+        window.addEventListener('focus', async () => {
+          const e = await getAuthenticatedEmail();
+          if (e) {
+            const pro = await checkPurchaseStatus(e);
+            if (pro !== appState.isPro) {
+              appState.isPro = pro;
+              showSignedInUI(e, pro);
+              renderUI();
+            }
+          }
+        }, { once: true });
+      } else {
+        appState.isPro = false;
+        appState.email = null;
+        showAuthState('signed-out');
+        renderUI();
+      }
+    });
   };
 
   function showSignedInUI(email, isPro) {
@@ -200,39 +221,57 @@ Conclude with this final analysis:
     }
   }
 
-  const updateUIForProStatus = (isPro) => {
-    if (isPro) {
-      if (upgradeCard) {
-        upgradeCard.style.display = 'none';
-      }
-    } else {
-      if (upgradeCard) {
-        upgradeCard.style.display = 'block';
-      }
-      if (accountCard) {
-        accountCard.style.display = 'block';
-      }
+  const renderUI = () => {
+    if (upgradeCard) {
+      upgradeCard.style.display = appState.isPro ? 'none' : 'flex';
     }
+    if (accountCard) {
+      accountCard.style.display = appState.isPro ? 'none' : 'block';
+    }
+
+    presetsGrid.innerHTML = '';
+    appState.presets.forEach((preset, index) => {
+      const cardElement = createPresetCard(preset, index, appState.isPro);
+      presetsGrid.appendChild(cardElement);
+    });
   };
 
-  // --- Dropdown Logic ---
-  const saveDestinationUrl = (url) => {
-    chrome.storage.sync.set({ destinationUrl: url });
-  };
+  const createPresetCard = (preset, index, isPro) => {
+    const card = presetTemplate.content.cloneNode(true).firstElementChild;
+    card.dataset.index = index;
 
-  const setupDestinationDropdown = async (isPro) => {
-    let { destinationUrl } = await chrome.storage.sync.get('destinationUrl');
+    card.querySelector('.preset-number').textContent = index + 1;
+    const defaultName = index === 0 ? 'Comparison' : (index === maxPresets - 1 ? '[Your Custom Preset]' : `Preset ${index + 1}`);
+    const nameInput = card.querySelector('.preset-name');
+    nameInput.value = preset.name || defaultName;
+    nameInput.placeholder = defaultName;
+
+    const promptTextarea = card.querySelector('.promptTemplate');
+    const defaultPromptForCard = (index === 0) ? defaultPromptPreset1 : defaultPrompt;
+    promptTextarea.value = preset.prompt || defaultPromptForCard;
+
+    const promptWarning = card.querySelector('.prompt-warning');
+    const validatePromptContext = () => {
+      if (promptTextarea.value.trim() !== '' && !promptTextarea.value.includes('{{content}}')) {
+        promptWarning.style.display = 'block';
+      } else {
+        promptWarning.style.display = 'none';
+      }
+    };
+    promptTextarea.addEventListener('input', validatePromptContext);
+    validatePromptContext();
+
+    const llmSelect = card.querySelector('.llm-select');
+    const customUrlLabel = card.querySelector('.custom-url-label');
+    const urlInput = card.querySelector('.llmUrl');
+
     let isCustom = true;
 
-    // Clear existing options before adding (prevents duplicates on re-init)
-    llmSelect.innerHTML = '';
-    
-    // Check if the current destinationUrl is one of the presets
     presetLLMs.forEach(llm => {
       const option = document.createElement('option');
       option.value = llm.url;
       option.textContent = llm.name;
-      if (llm.url === destinationUrl) {
+      if (llm.url === preset.url) {
         option.selected = true;
         isCustom = false;
       }
@@ -251,43 +290,165 @@ Conclude with this final analysis:
       customOption.textContent = 'Custom URL';
     }
 
-    if (isCustom && destinationUrl !== undefined) {
-      llmSelect.value = 'custom';
-      urlInput.style.display = 'block';
-      customUrlLabel.style.display = 'block';
-      urlInput.value = destinationUrl;
-      if (!isPro) urlInput.disabled = true;
-    } else if (!isCustom) {
-      urlInput.value = destinationUrl || presetLLMs[0].url;
-      urlInput.style.display = 'none';
-      customUrlLabel.style.display = 'none';
+    const showCustomFields = (show) => {
+      customUrlLabel.style.display = show ? 'block' : 'none';
+      urlInput.style.display = show ? 'block' : 'none';
+    };
+
+    if (isCustom) {
+      if (preset.url) {
+        llmSelect.value = 'custom';
+        showCustomFields(true);
+        urlInput.value = preset.url;
+        urlInput.disabled = !isPro;
+      } else {
+        llmSelect.value = presetLLMs[0].url;
+        urlInput.value = presetLLMs[0].url;
+        urlInput.disabled = true;
+        showCustomFields(false);
+      }
     } else {
-      // First time initialization
-      llmSelect.value = presetLLMs[0].url;
-      urlInput.value = presetLLMs[0].url;
-      saveDestinationUrl(presetLLMs[0].url);
+      llmSelect.value = preset.url;
+      urlInput.value = preset.url;
+      urlInput.disabled = true;
+      showCustomFields(false);
+    }
+
+    llmSelect.addEventListener('change', () => {
+      if (llmSelect.value === 'custom') {
+        showCustomFields(true);
+        if (isPro) {
+          urlInput.disabled = false;
+          urlInput.value = '';
+          urlInput.focus();
+        } else {
+          urlInput.disabled = true;
+        }
+      } else {
+        showCustomFields(false);
+        urlInput.value = llmSelect.value;
+        urlInput.disabled = true;
+        savePreset(index);
+      }
+    });
+
+    urlInput.addEventListener('change', () => savePreset(index));
+    card.querySelector('.saveSettings').addEventListener('click', () => savePreset(index));
+    card.querySelector('.resetPrompt').addEventListener('click', () => {
+      if (confirm(`Are you sure you want to reset this card to its default state?`)) {
+        clearPreset(index);
+      }
+    });
+    card.querySelector('.clear-preset').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (confirm(`Are you sure you want to clear "${card.querySelector('.preset-name').value}"?`)) {
+        clearPreset(index);
+      }
+    });
+
+    const header = card.querySelector('.card-header');
+    header.addEventListener('click', (e) => {
+      if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'button') return;
+      card.classList.toggle('expanded');
+    });
+
+    nameInput.addEventListener('click', (e) => {
+      e.stopPropagation();
+      card.classList.add('expanded');
+    });
+
+    if (!isPro) {
+      if (index === 0) {
+        promptTextarea.disabled = true;
+        urlInput.disabled = true;
+      } else {
+        card.classList.add('locked');
+        const controls = card.querySelectorAll('input, textarea, button, select');
+        controls.forEach(control => control.disabled = true);
+        card.querySelector('.clear-preset').disabled = false;
+        card.addEventListener('click', () => {
+          if (upgradeCard) {
+            upgradeCard.scrollIntoView({ behavior: 'smooth' });
+            upgradeCard.classList.add('expanded');
+          }
+        });
+      }
+    }
+    updateCardState(card, nameInput.value, urlInput.value, promptTextarea.value, index, isPro);
+    return card;
+  };
+
+  const savePreset = (index) => {
+    const card = presetsGrid.querySelector(`[data-index="${index}"]`);
+    if (!card) return;
+
+    const nameInput = card.querySelector('.preset-name');
+    const urlInput = card.querySelector('.llmUrl');
+    const promptTextarea = card.querySelector('.promptTemplate');
+
+    const urlValue = urlInput.value.trim();
+    const isCustomUrl = urlValue && !presetLLMs.some(llm => llm.url === urlValue);
+
+    const performSave = () => {
+      let updatedPresets = [...appState.presets];
+      updatedPresets[index] = {
+        name: nameInput.value.trim(),
+        url: urlValue,
+        prompt: promptTextarea.value
+      };
+
+      chrome.storage.sync.set({ presets: updatedPresets }, () => {
+        appState.presets = updatedPresets;
+        const statusDiv = card.querySelector('.status');
+        if (statusDiv) {
+          statusDiv.textContent = `Preset ${index + 1} Saved!`;
+          statusDiv.style.opacity = '1';
+          setTimeout(() => { statusDiv.style.opacity = '0'; }, 2000);
+        }
+        updateCardState(card, updatedPresets[index].name, updatedPresets[index].url, updatedPresets[index].prompt, index, appState.isPro);
+      });
+    };
+
+    if (isCustomUrl) {
+      try {
+        const urlObj = new URL(urlValue);
+        const origin = urlObj.origin + '/*';
+        chrome.permissions.request({ origins: [origin] }, (granted) => {
+          if (granted) performSave();
+          else alert('Permission denied. The extension needs permission to inject the prompt into this custom URL.');
+        });
+      } catch (e) {
+        alert('Invalid URL format. Please enter a valid URL (e.g., https://example.com).');
+      }
+    } else {
+      performSave();
     }
   };
 
-  // --- Prompt Card Logic ---
-  const setupPromptCards = async (isPro) => {
+  const clearPreset = (index) => {
+    let updatedPresets = [...appState.presets];
+    updatedPresets[index] = { name: '', url: '', prompt: '' };
+    chrome.storage.sync.set({ presets: updatedPresets }, () => {
+      appState.presets = updatedPresets;
+      renderUI();
+    });
+  };
+
+  const updateCardState = (card, name, url, prompt, index, isPro) => {
     if (isPro) {
-      proPromptCard.style.display = 'block';
-      freePromptCard.style.display = 'none';
-      loadCustomPrompt();
-    } else {
-      proPromptCard.style.display = 'none';
-      freePromptCard.style.display = 'block';
-      freeTextarea.value = DEFAULT_COMPARE_PROMPT;
+      card.classList.remove('empty');
+      card.classList.add('filled');
+      return;
     }
-  };
-
-  const loadCustomPrompt = async () => {
-    const { proPrompt } = await chrome.storage.sync.get('proPrompt');
-    if (proPrompt) {
-      proTextarea.value = proPrompt;
+    const defaultNameForIndex = index === 0 ? 'Comparison' : (index === maxPresets - 1 ? '[Your Custom Preset]' : `Preset ${index + 1}`);
+    const isDefaultName = (name === defaultNameForIndex || name === '');
+    const isConfigured = !isDefaultName || (url && url.trim() !== '') || (prompt && prompt.trim() !== '' && prompt !== defaultPrompt && prompt !== defaultPromptPreset1);
+    if (isConfigured) {
+      card.classList.remove('empty');
+      card.classList.add('filled');
     } else {
-      proTextarea.value = DEFAULT_COMPARE_PROMPT;
+      card.classList.remove('filled');
+      card.classList.add('empty');
     }
   };
 
@@ -445,55 +606,6 @@ Conclude with this final analysis:
         signOutBtn.textContent = 'Sign Out';
         signOutBtn.disabled = false;
       }
-    });
-  }
-
-  // --- Dropdown Listeners ---
-  if (llmSelect) {
-    llmSelect.addEventListener('change', () => {
-      if (llmSelect.value === 'custom') {
-        urlInput.style.display = 'block';
-        customUrlLabel.style.display = 'block';
-        urlInput.value = '';
-        urlInput.disabled = false;
-        urlInput.focus();
-      } else {
-        urlInput.style.display = 'none';
-        customUrlLabel.style.display = 'none';
-        urlInput.value = llmSelect.value;
-        urlInput.disabled = true;
-        saveDestinationUrl(llmSelect.value);
-      }
-    });
-  }
-
-  if (urlInput) {
-    urlInput.addEventListener('change', () => {
-      saveDestinationUrl(urlInput.value);
-    });
-  }
-
-  // --- Pro Prompt Save Button Listener ---
-  if (saveButton) {
-    saveButton.addEventListener('click', () => {
-      const newPrompt = proTextarea.value;
-      
-      if (!newPrompt.includes('{{content}}')) {
-        promptWarning.textContent = 'Warning: You should use {{content}} in your prompt or the AI won\'t receive the page content.';
-        promptWarning.style.display = 'block';
-        promptWarning.style.opacity = '1';
-        return;
-      }
-
-      // Hide warning if it was showing
-      promptWarning.style.display = 'none';
-      promptWarning.style.opacity = '0';
-
-      chrome.storage.sync.set({ proPrompt: newPrompt }, () => {
-        saveStatus.textContent = 'Prompt Saved!';
-        saveStatus.style.opacity = '1';
-        setTimeout(() => { saveStatus.style.opacity = '0'; }, 2000);
-      });
     });
   }
 

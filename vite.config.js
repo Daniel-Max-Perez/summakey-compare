@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import { copyFileSync, mkdirSync, existsSync, cpSync } from 'fs';
+import { copyFileSync, mkdirSync, existsSync, cpSync, readFileSync, writeFileSync } from 'fs';
 
 // Custom plugin to copy static extension assets to dist
 function copyExtensionAssets() {
@@ -12,7 +12,6 @@ function copyExtensionAssets() {
       // Copy static files
       const staticFiles = [
         'manifest.json',
-        'sw-loader.js',
         'popup.html',
         'popup.js',
         'options.html',
@@ -41,6 +40,13 @@ function copyExtensionAssets() {
       const iconsDist = resolve(dist, 'icons');
       if (existsSync(iconsSrc)) {
         cpSync(iconsSrc, iconsDist, { recursive: true });
+      }
+      // Prepend importScripts to background.js
+      const bgPath = resolve(dist, 'background.js');
+      if (existsSync(bgPath)) {
+        const original = readFileSync(bgPath, 'utf8');
+        const prepended = `importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');\n\n${original}`;
+        writeFileSync(bgPath, prepended);
       }
     },
   };
