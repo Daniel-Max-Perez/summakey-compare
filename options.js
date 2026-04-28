@@ -108,11 +108,51 @@ Conclude with this final analysis:
 
 {{content}}`;
 
+  const defaultPromptPreset2 = `You are a technical data extractor. Convert the unstructured product text into a strict, comparative feature matrix. Ignore subjective opinions.
+
+## 1. Feature Matrix Table
+Create a markdown table.
+* First Column: Feature/Spec Category (e.g., Price, Dimensions, Battery Life, Materials).
+* Subsequent Columns: Product names.
+* Populate cells with exact data points. If missing, state "Not Mentioned."
+
+## 2. Objective Advantages
+For each product, list 1-2 objective technical superiorities it holds over the others.
+
+---
+{{content}}`;
+
+  const defaultPromptPreset3 = `You are an expert consumer matching assistant. Ignore feature parity and focus entirely on the ideal user profile for each product based on the provided text.
+
+## 1. Persona Mapping
+For each product, write a "Buy this if you are..." statement detailing the specific type of person or situation it is best suited for.
+Write a corresponding "Do NOT buy this if you..." statement.
+
+## 2. The Deciding Question
+Provide one single question the buyer should ask themselves to instantly know which product is right for them.
+
+---
+{{content}}`;
+
+  const defaultPromptPreset4 = `You are a critical product investigator. Ignore all positive marketing claims and focus exclusively on downside risk, limitations, and potential buyer's remorse.
+
+## 1. The Biggest Flaw
+Identify the single biggest weakness, missing feature, or restrictive policy for each product.
+
+## 2. Compatibility & Hidden Costs
+List any proprietary accessories required, recurring subscription costs, or known compatibility issues mentioned in the text.
+
+## 3. The Safer Bet
+Based strictly on avoiding negative surprises, state which product is the lower-risk purchase and why.
+
+---
+{{content}}`;
+
   const defaultPresets = [
     { name: 'Comparison', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset1 },
-    { name: 'Feature Matrix', url: 'https://gemini.google.com/app', prompt: defaultPrompt },
-    { name: 'Pros & Cons', url: 'https://gemini.google.com/app', prompt: defaultPrompt },
-    { name: 'Value Analysis', url: 'https://gemini.google.com/app', prompt: defaultPrompt }
+    { name: 'Feature Matrix', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset2 },
+    { name: 'Use-Case Matcher', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset3 },
+    { name: 'The Red Flag Check', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset4 }
   ];
 
   // --- Monetization Functions ---
@@ -241,13 +281,13 @@ Conclude with this final analysis:
     card.dataset.index = index;
 
     card.querySelector('.preset-number').textContent = index + 1;
-    const defaultName = index === 0 ? 'Comparison' : (index === maxPresets - 1 ? '[Your Custom Preset]' : `Preset ${index + 1}`);
+    const defaultName = defaultPresets[index] ? defaultPresets[index].name : `Preset ${index + 1}`;
     const nameInput = card.querySelector('.preset-name');
     nameInput.value = preset.name || defaultName;
     nameInput.placeholder = defaultName;
 
     const promptTextarea = card.querySelector('.promptTemplate');
-    const defaultPromptForCard = (index === 0) ? defaultPromptPreset1 : defaultPrompt;
+    const defaultPromptForCard = defaultPresets[index] ? defaultPresets[index].prompt : defaultPrompt;
     promptTextarea.value = preset.prompt || defaultPromptForCard;
 
     const promptWarning = card.querySelector('.prompt-warning');
@@ -440,9 +480,10 @@ Conclude with this final analysis:
       card.classList.add('filled');
       return;
     }
-    const defaultNameForIndex = index === 0 ? 'Comparison' : (index === maxPresets - 1 ? '[Your Custom Preset]' : `Preset ${index + 1}`);
+    const defaultNameForIndex = defaultPresets[index] ? defaultPresets[index].name : `Preset ${index + 1}`;
     const isDefaultName = (name === defaultNameForIndex || name === '');
-    const isConfigured = !isDefaultName || (url && url.trim() !== '') || (prompt && prompt.trim() !== '' && prompt !== defaultPrompt && prompt !== defaultPromptPreset1);
+    const defaultPromptForIndex = defaultPresets[index] ? defaultPresets[index].prompt : defaultPrompt;
+    const isConfigured = !isDefaultName || (url && url.trim() !== '') || (prompt && prompt.trim() !== '' && prompt !== defaultPromptForIndex);
     if (isConfigured) {
       card.classList.remove('empty');
       card.classList.add('filled');
