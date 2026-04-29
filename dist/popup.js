@@ -145,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
           li.innerHTML = `
             <div class="preset-number">${index + 1}</div>
             <div class="preset-name">${preset.name || `Preset ${index + 1}`}</div>
-            ${isLocked ? '<span class="lock-icon">🔒</span>' : ''}
+            ${isLocked ? '<svg class="lock-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A0A0A0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: auto; opacity: 0.5;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>' : ''}
           `;
 
           if (isLocked) {

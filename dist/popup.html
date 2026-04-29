@@ -247,15 +247,30 @@
     }
 
     .preset-item.locked {
-      opacity: 0.4;
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.05);
       cursor: not-allowed;
     }
 
     .preset-item.locked:hover {
       transform: none;
-      background: var(--glass-bg);
-      border-color: var(--glass-border);
+      background: rgba(255, 255, 255, 0.02);
+      border-color: rgba(255, 255, 255, 0.05);
       box-shadow: none;
+    }
+
+    .preset-item.locked .preset-number {
+      background: #1a1a1a;
+      color: #555;
+      box-shadow: none;
+    }
+    
+    .preset-item.locked .preset-name {
+      color: #555;
+    }
+    
+    .preset-item.locked:hover .preset-name {
+      color: #555;
     }
 
     .preset-number {
@@ -295,7 +310,6 @@
     }
 
     .lock-icon {
-      font-size: 12px;
       margin-left: 8px;
       opacity: 0.5;
     }

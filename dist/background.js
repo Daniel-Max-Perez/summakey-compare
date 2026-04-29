@@ -2,16 +2,14 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
 
 (function() {
   "use strict";
-  const pasteAndSubmitToLLM = function(textToPaste, logPrefix = "SummaKey") {
+  const pasteAndSubmitToLLM = function(textToPaste, logPrefix = "SummaKey", remoteConfig = null) {
     console.log(`${logPrefix}: Attempting to paste text into chatbox...`);
     console.log(`${logPrefix}: Text length:`, textToPaste.length);
-    const SELECTORS = [
-      // Modern ChatGPT (2024) — textarea with id
+    const SELECTORS = (remoteConfig == null ? void 0 : remoteConfig.chatboxSelectors) || [
       "textarea#prompt-textarea",
       'textarea[id^="prompt-textarea"]',
       'textarea[id*="prompt"]',
       "#prompt-textarea",
-      // Contenteditable divs (ChatGPT's current approach)
       'div[contenteditable="true"][data-placeholder*="Message"]',
       'div[contenteditable="true"][data-placeholder*="message"]',
       'div[contenteditable="true"][placeholder*="Message"]',
@@ -21,26 +19,18 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
       'div[contenteditable="true"][aria-label*="Enter"]',
       'div[contenteditable="true"][role="textbox"]',
       'div[contenteditable="true"]',
-      // ID-based fallbacks
-      "#prompt-textarea",
       "#prompt-input",
       "#chat-input",
       "#message-input",
-      // Textarea fallbacks
       'textarea[placeholder*="Message"]',
       'textarea[placeholder*="message"]',
       'textarea[placeholder*="Ask"]',
       'textarea[aria-label*="Message"]',
       'textarea[aria-label*="message"]',
       'textarea[aria-label*="Ask"]',
-      "textarea",
-      // Custom tags or role-based
-      "rich-textarea",
-      '[role="textbox"][contenteditable="true"]',
-      '[contenteditable="true"]'
+      "textarea"
     ];
     function findChatbox() {
-      var _a;
       for (const selector of SELECTORS) {
         const element = document.querySelector(selector);
         if (element) {
@@ -52,39 +42,9 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
           }
         }
       }
-      const submitButtons = document.querySelectorAll(
-        'button[data-testid*="send"], button[aria-label*="Send"], button[aria-label*="send"]'
-      );
-      for (const button of submitButtons) {
-        const container = button.closest("form") || ((_a = button.parentElement) == null ? void 0 : _a.parentElement);
-        if (container) {
-          const textarea = container.querySelector("textarea");
-          const contenteditable = container.querySelector('div[contenteditable="true"]');
-          const candidate = textarea || contenteditable;
-          if (candidate) {
-            console.log(`${logPrefix}: Found chatbox by proximity to submit button`);
-            return candidate;
-          }
-        }
-      }
-      const contenteditables = Array.from(
-        document.querySelectorAll('div[contenteditable="true"]')
-      );
-      if (contenteditables.length > 0) {
-        const largest = contenteditables.reduce((prev, current) => {
-          const prevRect = prev.getBoundingClientRect();
-          const currentRect = current.getBoundingClientRect();
-          return currentRect.width * currentRect.height > prevRect.width * prevRect.height ? current : prev;
-        });
-        const rect = largest.getBoundingClientRect();
-        if (rect.width > 100 && rect.height > 20) {
-          console.log(`${logPrefix}: Found chatbox by size (largest contenteditable)`);
-          return largest;
-        }
-      }
       return null;
     }
-    const SUBMIT_BUTTON_SELECTORS = [
+    const SUBMIT_BUTTON_SELECTORS = (remoteConfig == null ? void 0 : remoteConfig.submitSelectors) || [
       'button[data-testid="send-button"]',
       'button[data-testid*="send"]',
       'button[aria-label*="Send"]',
@@ -94,195 +54,72 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
       'button[type="submit"]',
       "button.send-button",
       'button[class*="send"]',
-      'button[class*="submit"]',
-      '[data-testid="send-button"]',
-      '[role="button"][aria-label*="Send"]',
-      '[role="button"][class*="send"]'
+      'button[class*="submit"]'
     ];
-    let attemptCount = 0;
-    const maxAttempts = 150;
-    const interval = setInterval(() => {
-      attemptCount++;
-      const chatbox = findChatbox();
-      if (chatbox) {
-        clearInterval(interval);
-        console.log(`${logPrefix}: Chatbox found!`, {
-          tagName: chatbox.tagName,
-          id: chatbox.id,
-          className: chatbox.className,
-          contentEditable: chatbox.contentEditable,
-          type: chatbox.type
-        });
-        chatbox.scrollIntoView({ behavior: "smooth", block: "center" });
-        chatbox.focus();
+    function waitForChatbox(callback) {
+      const existingChatbox = findChatbox();
+      if (existingChatbox) return callback(existingChatbox);
+      let isFound = false;
+      const observer = new MutationObserver((mutations, obs) => {
+        if (isFound) return;
+        const chatbox = findChatbox();
+        if (chatbox) {
+          isFound = true;
+          obs.disconnect();
+          callback(chatbox);
+        }
+      });
+      observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+      setTimeout(() => {
+        if (!isFound) {
+          isFound = true;
+          observer.disconnect();
+          console.error(`${logPrefix}: Chatbox not found after 15s`);
+        }
+      }, 15e3);
+    }
+    waitForChatbox((chatbox) => {
+      console.log(`${logPrefix}: Chatbox ready. Injecting...`);
+      chatbox.scrollIntoView({ behavior: "smooth", block: "center" });
+      chatbox.focus();
+      setTimeout(() => {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.setData("text/plain", textToPaste);
+        const pasteEvent = new ClipboardEvent("paste", { clipboardData: dataTransfer, bubbles: true, cancelable: true });
+        chatbox.dispatchEvent(pasteEvent);
         setTimeout(() => {
-          let textElement = chatbox;
-          if (chatbox.tagName.toLowerCase() === "div" && chatbox.contentEditable === "true") {
-            console.log(`${logPrefix}: Using contenteditable div approach`);
-            chatbox.innerHTML = "";
-            const existingP = chatbox.querySelector("p");
-            if (existingP) {
-              existingP.textContent = textToPaste;
-              textElement = existingP;
-            } else {
+          const currentVal = chatbox.tagName.toLowerCase() === "textarea" ? chatbox.value : chatbox.innerText;
+          if (!currentVal || currentVal.length < textToPaste.length * 0.1) {
+            console.log(`${logPrefix}: Paste failed or blocked, using direct assignment fallback`);
+            if (chatbox.tagName.toLowerCase() === "div" && chatbox.contentEditable === "true") {
+              chatbox.innerHTML = "";
               const p = document.createElement("p");
               p.textContent = textToPaste;
               chatbox.appendChild(p);
-              textElement = p;
-            }
-            chatbox.textContent = textToPaste;
-          } else if (chatbox.tagName.toLowerCase() === "textarea") {
-            console.log(`${logPrefix}: Using textarea approach`);
-            chatbox.value = textToPaste;
-            textElement = chatbox;
-          } else {
-            console.log(`${logPrefix}: Using fallback approach`);
-            if ("value" in chatbox) {
-              chatbox.value = textToPaste;
             } else {
-              chatbox.textContent = textToPaste;
-              chatbox.innerText = textToPaste;
+              chatbox.value = textToPaste;
             }
+            ["input", "change", "beforeinput"].forEach((type) => chatbox.dispatchEvent(new Event(type, { bubbles: true, composed: true })));
           }
-          console.log(`${logPrefix}: Text set, now triggering events...`);
-          chatbox.classList.remove("ql-blank");
-          if (chatbox.parentElement) {
-            chatbox.parentElement.classList.remove("empty");
-          }
-          const inputEvent = new InputEvent("input", {
-            bubbles: true,
-            cancelable: true,
-            inputType: "insertText",
-            data: textToPaste,
-            composed: true
-          });
-          textElement.dispatchEvent(inputEvent);
-          chatbox.dispatchEvent(inputEvent);
-          ["beforeinput", "input", "change", "keydown", "keyup", "paste"].forEach(
-            (eventType) => {
-              const event = new Event(eventType, {
-                bubbles: true,
-                cancelable: true,
-                composed: true
-              });
-              textElement.dispatchEvent(event);
-              chatbox.dispatchEvent(event);
-            }
-          );
-          chatbox.dataset.summakeyContent = "true";
-          chatbox.blur();
           setTimeout(() => {
-            chatbox.focus();
+            const enterOpts = { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true };
+            chatbox.dispatchEvent(new KeyboardEvent("keydown", enterOpts));
+            chatbox.dispatchEvent(new KeyboardEvent("keyup", enterOpts));
             setTimeout(() => {
-              var _a;
-              let submitButton = null;
-              for (const selector of SUBMIT_BUTTON_SELECTORS) {
-                submitButton = document.querySelector(selector);
-                if (submitButton && !submitButton.disabled) break;
+              let submitBtn = null;
+              for (const sel of SUBMIT_BUTTON_SELECTORS) {
+                submitBtn = document.querySelector(sel);
+                if (submitBtn && !submitBtn.disabled) break;
               }
-              if (!submitButton || submitButton.disabled) {
-                const containers = [
-                  chatbox.closest("form"),
-                  chatbox.closest('[role="form"]'),
-                  (_a = chatbox.parentElement) == null ? void 0 : _a.parentElement,
-                  chatbox.closest('div[class*="composer"]'),
-                  chatbox.closest('div[class*="input"]'),
-                  chatbox.closest('div[class*="send"]')
-                ];
-                for (const container of containers) {
-                  if (container) {
-                    for (const selector of SUBMIT_BUTTON_SELECTORS) {
-                      submitButton = container.querySelector(selector);
-                      if (submitButton && !submitButton.disabled) break;
-                    }
-                    if (submitButton && !submitButton.disabled) break;
-                  }
-                }
+              if (submitBtn) {
+                submitBtn.click();
+                console.log(`${logPrefix}: Submit clicked`);
               }
-              if (submitButton && !submitButton.disabled && !submitButton.hasAttribute("disabled")) {
-                console.log(`${logPrefix}: Clicking submit button`, submitButton);
-                submitButton.click();
-              } else {
-                console.log(
-                  `${logPrefix}: Submit button not found or disabled, trying Enter key`
-                );
-                chatbox.focus();
-                const enterDown = new KeyboardEvent("keydown", {
-                  key: "Enter",
-                  code: "Enter",
-                  keyCode: 13,
-                  which: 13,
-                  bubbles: true,
-                  cancelable: false,
-                  composed: true
-                });
-                const enterUp = new KeyboardEvent("keyup", {
-                  key: "Enter",
-                  code: "Enter",
-                  keyCode: 13,
-                  which: 13,
-                  bubbles: true,
-                  cancelable: false,
-                  composed: true
-                });
-                chatbox.dispatchEvent(enterDown);
-                setTimeout(() => chatbox.dispatchEvent(enterUp), 10);
-              }
-            }, 800);
-          }, 100);
-        }, 100);
-      } else if (attemptCount >= maxAttempts) {
-        clearInterval(interval);
-        console.error(`${logPrefix}: Chatbox not found after`, maxAttempts * 200, "ms");
-        console.error("=== DEBUGGING INFO ===");
-        console.error("Page URL:", window.location.href);
-        console.error("Page title:", document.title);
-        const textareas = Array.from(document.querySelectorAll("textarea"));
-        console.error(
-          `Available textareas (${textareas.length}):`,
-          textareas.map((el) => ({
-            id: el.id,
-            className: el.className,
-            placeholder: el.placeholder,
-            ariaLabel: el.getAttribute("aria-label"),
-            visible: el.offsetWidth > 0 && el.offsetHeight > 0,
-            disabled: el.disabled
-          }))
-        );
-        const contenteditableDivs = Array.from(
-          document.querySelectorAll('div[contenteditable="true"]')
-        );
-        console.error(
-          `Available contenteditable divs (${contenteditableDivs.length}):`,
-          contenteditableDivs.map((el) => ({
-            id: el.id,
-            className: el.className,
-            "data-placeholder": el.dataset.placeholder,
-            role: el.role,
-            ariaLabel: el.getAttribute("aria-label"),
-            visible: el.offsetWidth > 0 && el.offsetHeight > 0,
-            innerHTML: el.innerHTML.substring(0, 100)
-          }))
-        );
-        const buttons = Array.from(document.querySelectorAll("button"));
-        const sendButtons = buttons.filter(
-          (b) => {
-            var _a, _b;
-            return ((_a = b.getAttribute("data-testid")) == null ? void 0 : _a.includes("send")) || ((_b = b.getAttribute("aria-label")) == null ? void 0 : _b.toLowerCase().includes("send"));
-          }
-        );
-        console.error(
-          "Available send buttons:",
-          sendButtons.map((el) => ({
-            dataTestId: el.getAttribute("data-testid"),
-            ariaLabel: el.getAttribute("aria-label"),
-            disabled: el.disabled,
-            visible: el.offsetWidth > 0 && el.offsetHeight > 0
-          }))
-        );
-        console.error("=== END DEBUGGING INFO ===");
-      }
-    }, 200);
+            }, 500);
+          }, 600);
+        }, 300);
+      }, 200);
+    });
   };
   function getDetailedPageContent() {
     try {
@@ -310,21 +147,14 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
             if (Date.now() - startTime > timeout) return NodeFilter.FILTER_REJECT;
             if (node2.nodeType === ELEMENT_NODE) {
               const tag = node2.tagName ? node2.tagName.toLowerCase() : "";
-              if (["nav", "footer", "script", "style", "svg", "noscript", "header", "aside", "iframe", "canvas", "form", "button"].includes(
-                tag
-              )) {
+              if (["nav", "footer", "script", "style", "svg", "noscript", "header", "aside", "iframe", "canvas", "form", "button"].includes(tag)) {
                 return NodeFilter.FILTER_REJECT;
               }
               if (node2.hasAttribute("aria-hidden") && node2.getAttribute("aria-hidden") === "true") {
                 return NodeFilter.FILTER_REJECT;
               }
-              if (tag === "img" && node2.alt) {
-                return NodeFilter.FILTER_ACCEPT;
-              }
             } else if (node2.nodeType === TEXT_NODE) {
-              if (node2.textContent && node2.textContent.trim().length > 0) {
-                return NodeFilter.FILTER_ACCEPT;
-              }
+              if (node2.textContent && node2.textContent.trim().length > 0) return NodeFilter.FILTER_ACCEPT;
             }
             return NodeFilter.FILTER_SKIP;
           }
@@ -338,60 +168,41 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
       let currentLength = content.length;
       while ((node = walker.nextNode()) && Date.now() - startTime < timeout) {
         if (currentLength >= maxTextLength || nodeCount++ > maxNodes) break;
-        let text = "";
         if (node.nodeType === TEXT_NODE) {
-          text = node.textContent.trim();
-        } else if (node.nodeType === ELEMENT_NODE && node.tagName && node.tagName.toLowerCase() === "img") {
-          text = `[Image: ${node.alt}]`;
-        }
-        if (text) {
-          texts.push(text);
-          currentLength += text.length;
+          let text = node.textContent.replace(/\s+/g, " ").trim();
+          text = text.replace(/\b\d{3}-\d{2}-\d{4}\b/g, "[REDACTED SSN]");
+          text = text.replace(/\b(?:\d[ -]*?){13,16}\b/g, "[REDACTED CC]");
+          text = text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[REDACTED EMAIL]");
+          if (text) {
+            texts.push(text);
+            currentLength += text.length;
+          }
         }
       }
       content += texts.join(" ");
       if (!content || content.trim().length < 50) {
-        const bodyText = document.body.innerText || "";
-        content += bodyText.substring(0, maxTextLength);
+        content += (document.body.innerText || "").substring(0, maxTextLength);
       }
       return content;
     } catch (error) {
-      return `ERROR: Content extraction failed: ${error.message} at ${window.location.href}`;
+      return `ERROR: Extraction failed: ${error.message}`;
     }
   }
-  async function showNotification({
-    title,
-    message,
-    notificationId = "summakey-notification",
-    iconPath = "icons/icon128.png"
-  }) {
+  async function showNotification({ title, message, notificationId = "summakey-notification", iconPath = "icons/icon128.png" }) {
     try {
       await chrome.notifications.create(notificationId, {
         type: "basic",
         iconUrl: chrome.runtime.getURL(iconPath),
         title: title || "SummaKey",
         message: message || "",
-        priority: 2,
-        silent: false
+        priority: 2
       });
-      setTimeout(() => {
-        chrome.notifications.clear(notificationId, (wasCleared) => {
-          if (chrome.runtime.lastError) {
-            console.warn("SummaKey: Error clearing notification:", chrome.runtime.lastError);
-          }
-        });
-      }, 2500);
+      setTimeout(() => chrome.notifications.clear(notificationId), 2500);
     } catch (error) {
-      console.error("SummaKey: Error creating notification:", error);
+      console.error("SummaKey Notification Error:", error);
     }
   }
-  function navigateAndInjectPrompt({
-    destinationUrl,
-    finalPrompt,
-    logPrefix = "SummaKey",
-    notificationDelayMs = 200,
-    spaDelayMs = 2e3
-  }) {
+  function navigateAndInjectPrompt({ destinationUrl, finalPrompt, logPrefix = "SummaKey", notificationDelayMs = 200, spaDelayMs = 2e3, remoteConfig = null }) {
     setTimeout(async () => {
       const llmTab = await chrome.tabs.create({ url: destinationUrl, active: true });
       let attempts = 0;
@@ -407,30 +218,17 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
                 await chrome.scripting.executeScript({
                   target: { tabId: llmTab.id },
                   func: pasteAndSubmitToLLM,
-                  args: [finalPrompt, logPrefix]
+                  args: [finalPrompt, logPrefix, remoteConfig]
                 });
-                console.log(`${logPrefix}: Script injected successfully`);
-              } catch (error) {
-                console.error(`${logPrefix}: Error injecting script:`, error);
-                try {
-                  await chrome.scripting.executeScript({
-                    target: { tabId: llmTab.id },
-                    func: pasteAndSubmitToLLM,
-                    args: [finalPrompt, logPrefix]
-                  });
-                } catch (error2) {
-                  console.error(`${logPrefix}: Alternative injection also failed:`, error2);
-                }
+              } catch (err) {
+                console.error("Injection failed:", err);
               }
             }, spaDelayMs);
           }
-        } catch (error) {
-          console.error(`${logPrefix}: Error checking tab status:`, error);
-        }
-        if (attempts >= maxWaitAttempts) {
+        } catch (err) {
           clearInterval(waitForPage);
-          console.error(`${logPrefix}: Page did not load in time`);
         }
+        if (attempts >= maxWaitAttempts) clearInterval(waitForPage);
       }, 500);
     }, notificationDelayMs);
   }
@@ -594,9 +392,41 @@ Here is the data:
       forceLogout().then(() => sendResponse({ status: "logged_out" })).catch((error) => sendResponse({ status: "error", message: error.message }));
       return true;
     }
+    if (request.action === "injectionFailed") {
+      showNotification({
+        title: "Injection Failed",
+        message: "Could not submit prompt. The AI site may have updated its interface or you hit a limit.",
+        notificationId: "injection-failed"
+      });
+      sendResponse({ status: "notified" });
+      return true;
+    }
     return false;
   });
+  let cachedSelectors = null;
+  let lastSelectorFetch = 0;
+  async function getRemoteSelectors() {
+    const now = Date.now();
+    if (cachedSelectors && now - lastSelectorFetch < 12 * 60 * 60 * 1e3) {
+      return cachedSelectors;
+    }
+    try {
+      const res = await fetch("https://summakey-backend.vercel.app/api/selectors");
+      if (res.ok) {
+        cachedSelectors = await res.json();
+        lastSelectorFetch = now;
+        return cachedSelectors;
+      }
+    } catch (e) {
+      console.warn("Could not fetch remote selectors, using fallbacks");
+    }
+    return null;
+  }
+  let lastHotkeyTime = 0;
   chrome.commands.onCommand.addListener((command) => {
+    const now = Date.now();
+    if (now - lastHotkeyTime < 500) return;
+    lastHotkeyTime = now;
     if (command === "scrape_current_page") {
       scrapeAndStore("hotkey");
     } else if (command === "compare_products") {
@@ -657,6 +487,16 @@ Here is the data:
         });
         return { status: "error", message: "Restricted page" };
       }
+      const isDuplicate = currentList.some((item) => item.url === currentTab.url);
+      if (isDuplicate) {
+        console.warn(`${LOG_PREFIX} [${logId}]: Page already scraped: ${currentTab.url}`);
+        await showNotification({
+          title: "Already Added",
+          message: "This page is already in your comparison list.",
+          notificationId: NOTIFICATION_ID
+        });
+        return { status: "error", message: "Page already added" };
+      }
       console.log(`${LOG_PREFIX} [${logId}]: Injecting script into tab ${currentTab.id}...`);
       let pageContent = "";
       const scriptPromise = chrome.scripting.executeScript({
@@ -664,7 +504,7 @@ Here is the data:
         func: getDetailedPageContent,
         injectImmediately: true
       });
-      const scriptTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Scraping timed out (page too heavy)")), 15e3));
+      const scriptTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Page too large or slow to scrape. Try refreshing.")), 15e3));
       try {
         const results = await Promise.race([scriptPromise, scriptTimeout]);
         if (!results || !results[0] || results[0].result === void 0) {
@@ -684,7 +524,7 @@ Here is the data:
         const errMsg = pageContent || "No details detected on this page.";
         return { status: "error", message: errMsg };
       }
-      const maxContentSize = 100 * 1024;
+      const maxContentSize = 25 * 1024;
       const trimmedContent = pageContent.length > maxContentSize ? pageContent.substring(0, maxContentSize) + "\n\n[Content truncated]" : pageContent;
       const newProduct = {
         title: currentTab.title || "Untitled Page",
@@ -726,10 +566,9 @@ Here is the data:
         await forceLogout();
         await showNotification({
           title: "Session Expired",
-          message: "You've been signed in on another device. Please sign in again.",
+          message: "You've been signed in on another device. Please click the extension icon to sign in.",
           notificationId: NOTIFICATION_ID
         });
-        chrome.runtime.openOptionsPage();
         return;
       }
       isPro = await checkPurchaseStatus(email);
@@ -767,10 +606,15 @@ Here is the data:
     if (presets && presets[presetIndex]) {
       activePreset = presets[presetIndex];
     }
+    const secureContent = `
+### USER DATA START ###
+${allContent}
+### USER DATA END ###
+`;
     if (activePreset && activePreset.prompt) {
-      finalPrompt = activePreset.prompt.replace("{{content}}", allContent);
+      finalPrompt = activePreset.prompt.replace("{{content}}", secureContent);
     } else {
-      finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace("{{content}}", allContent);
+      finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace("{{content}}", secureContent);
     }
     const destinationURL = activePreset && activePreset.url ? activePreset.url : "https://gemini.google.com/app";
     await showNotification({
@@ -778,10 +622,13 @@ Here is the data:
       message: `Comparing ${currentList.length} pages...`,
       notificationId: NOTIFICATION_ID
     });
+    const remoteConfig = await getRemoteSelectors();
     navigateAndInjectPrompt({
       destinationUrl: destinationURL,
       finalPrompt,
-      logPrefix: LOG_PREFIX
+      logPrefix: LOG_PREFIX,
+      notificationDelayMs: 200,
+      remoteConfig
     });
     await clearProductList();
   }

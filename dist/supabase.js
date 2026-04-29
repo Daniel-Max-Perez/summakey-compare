@@ -146,6 +146,13 @@ async function checkPurchaseStatus(email) {
   if (!email) return false;
 
   try {
+    const { proStatusCache } = await chrome.storage.local.get('proStatusCache');
+    const now = Date.now();
+    if (proStatusCache && proStatusCache.email === email && now < proStatusCache.expiresAt) {
+      await chrome.storage.sync.set({ pro: proStatusCache.isPro });
+      return proStatusCache.isPro;
+    }
+
     const { data, error } = await supabaseClient
       .from('purchases')
       .select('id')
@@ -160,6 +167,11 @@ async function checkPurchaseStatus(email) {
     }
 
     const isPro = data && data.length > 0;
+    const expiresAt = now + (12 * 60 * 60 * 1000); // 12 hours TTL
+    await chrome.storage.local.set({ 
+      proStatusCache: { isPro, email, expiresAt } 
+    });
+    
     await chrome.storage.sync.set({ pro: isPro });
     return isPro;
   } catch (err) {

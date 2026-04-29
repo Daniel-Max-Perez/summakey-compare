@@ -205,15 +205,57 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; // async
   }
 
+  if (request.action === 'injectionFailed') {
+    showNotification({
+      title: 'Injection Failed',
+      message: 'Could not submit prompt. The AI site may have updated its interface or you hit a limit.',
+      notificationId: 'injection-failed'
+    });
+    sendResponse({ status: 'notified' });
+    return true;
+  }
+
   // Not handled
   return false;
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Remote Selectors Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+
+let cachedSelectors = null;
+let lastSelectorFetch = 0;
+
+async function getRemoteSelectors() {
+  const now = Date.now();
+  if (cachedSelectors && now - lastSelectorFetch < 12 * 60 * 60 * 1000) {
+    return cachedSelectors;
+  }
+  try {
+    // Vercel deployment URL (replace if different)
+    const res = await fetch('https://summakey-backend.vercel.app/api/selectors');
+    if (res.ok) {
+      cachedSelectors = await res.json();
+      lastSelectorFetch = now;
+      return cachedSelectors;
+    }
+  } catch (e) {
+    console.warn('Could not fetch remote selectors, using fallbacks');
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Hotkey Commands
 // ─────────────────────────────────────────────────────────────────────────────
 
+let lastHotkeyTime = 0;
+
 chrome.commands.onCommand.addListener((command) => {
+  const now = Date.now();
+  if (now - lastHotkeyTime < 500) return; // 500ms debounce
+  lastHotkeyTime = now;
+
   if (command === 'scrape_current_page') {
     scrapeAndStore('hotkey');
   } else if (command === 'compare_products') {
@@ -300,6 +342,18 @@ async function scrapeAndStore(logId = 'direct', explicitTab = null) {
       return { status: 'error', message: 'Restricted page' };
     }
 
+    // Deduplication check (Task 6.B)
+    const isDuplicate = currentList.some(item => item.url === currentTab.url);
+    if (isDuplicate) {
+      console.warn(`${LOG_PREFIX} [${logId}]: Page already scraped: ${currentTab.url}`);
+      await showNotification({
+        title: 'Already Added',
+        message: 'This page is already in your comparison list.',
+        notificationId: NOTIFICATION_ID,
+      });
+      return { status: 'error', message: 'Page already added' };
+    }
+
     console.log(`${LOG_PREFIX} [${logId}]: Injecting script into tab ${currentTab.id}...`);
     let pageContent = '';
     
@@ -310,7 +364,7 @@ async function scrapeAndStore(logId = 'direct', explicitTab = null) {
       injectImmediately: true,
     });
 
-    const scriptTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Scraping timed out (page too heavy)')), 15000));
+    const scriptTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Page too large or slow to scrape. Try refreshing.')), 15000));
     
     try {
       const results = await Promise.race([scriptPromise, scriptTimeout]);
@@ -333,8 +387,8 @@ async function scrapeAndStore(logId = 'direct', explicitTab = null) {
       return { status: 'error', message: errMsg };
     }
 
-    // Limit content size (max 100KB per item)
-    const maxContentSize = 100 * 1024;
+    // Limit content size (max 25KB per item) (Task 2.A)
+    const maxContentSize = 25 * 1024;
     const trimmedContent =
       pageContent.length > maxContentSize
         ? pageContent.substring(0, maxContentSize) + '\n\n[Content truncated]'
@@ -391,10 +445,9 @@ async function compareProducts(presetIndex = 0) {
       await forceLogout();
       await showNotification({
         title: 'Session Expired',
-        message: "You've been signed in on another device. Please sign in again.",
+        message: "You've been signed in on another device. Please click the extension icon to sign in.",
         notificationId: NOTIFICATION_ID,
       });
-      chrome.runtime.openOptionsPage();
       return;
     }
     isPro = await checkPurchaseStatus(email);
@@ -440,10 +493,12 @@ async function compareProducts(presetIndex = 0) {
     activePreset = presets[presetIndex];
   }
 
+  const secureContent = `\n### USER DATA START ###\n${allContent}\n### USER DATA END ###\n`;
+
   if (activePreset && activePreset.prompt) {
-    finalPrompt = activePreset.prompt.replace('{{content}}', allContent);
+    finalPrompt = activePreset.prompt.replace('{{content}}', secureContent);
   } else {
-    finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace('{{content}}', allContent);
+    finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace('{{content}}', secureContent);
   }
 
   // Get destination URL
@@ -457,10 +512,14 @@ async function compareProducts(presetIndex = 0) {
   });
 
   // Navigate and inject
+  const remoteConfig = await getRemoteSelectors();
+
   navigateAndInjectPrompt({
     destinationUrl: destinationURL,
     finalPrompt,
     logPrefix: LOG_PREFIX,
+    notificationDelayMs: 200,
+    remoteConfig,
   });
 
   // Clear the list after comparing

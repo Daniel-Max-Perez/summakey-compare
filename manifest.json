@@ -2,7 +2,10 @@
   "manifest_version": 3,
   "name": "SummaKey Compare - Side-by-Side AI Research Tool",
   "version": "1.11",
-  "description": "Compare products, research, and data in two clicks. Collect pages with a hotkey and let AI build you a comparison table.",
+  "description": "AI Prompt Bridge and Data Extractor. Compare products and let AI build you a table.",
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  },
   "options_page": "options.html",
   "permissions": [
     "activeTab",
@@ -37,20 +40,6 @@
     "default_title": "SummaKey Compare - Side-by-Side AI Research Tool",
     "default_popup": "popup.html"
   },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "get-started.html",
-        "get-started.css",
-        "get-started.js",
-        "popup.js",
-        "supabase-bundle.js",
-        "supabase.js",
-        "icons/icon128.png"
-      ],
-      "matches": ["<all_urls>"]
-    }
-  ],
   "commands": {
     "scrape_current_page": {
       "description": "Scrape current page"

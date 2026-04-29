@@ -205,10 +205,20 @@ Based strictly on avoiding negative surprises, state which product is the lower-
       if (data.presets.length === 0 || data.presets.length < maxPresets) {
         data.presets = JSON.parse(JSON.stringify(defaultPresets));
         needsUpdate = true;
+      } else {
+        data.presets.forEach((preset, index) => {
+          if (index > 0) {
+            if (!preset.prompt || preset.prompt === '{{content}}' || !preset.name || preset.name === 'Pros & Cons' || preset.name === 'Value Analysis' || preset.name.startsWith('Preset ')) {
+              preset.name = defaultPresets[index].name;
+              preset.prompt = defaultPresets[index].prompt;
+              needsUpdate = true;
+            }
+          }
+        });
       }
 
       while (data.presets.length < maxPresets) {
-        data.presets.push({ name: `Preset ${data.presets.length + 1}`, url: '', prompt: defaultPrompt });
+        data.presets.push({ name: defaultPresets[data.presets.length] ? defaultPresets[data.presets.length].name : `Preset ${data.presets.length + 1}`, url: '', prompt: defaultPresets[data.presets.length] ? defaultPresets[data.presets.length].prompt : defaultPrompt });
         needsUpdate = true;
       }
 
@@ -405,8 +415,22 @@ Based strictly on avoiding negative surprises, state which product is the lower-
         card.classList.add('locked');
         const controls = card.querySelectorAll('input, textarea, button, select');
         controls.forEach(control => control.disabled = true);
+        
+        const lockIcon = document.createElement('div');
+        lockIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: auto; opacity: 0.8;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+        lockIcon.style.display = 'flex';
+        lockIcon.style.marginLeft = 'auto';
+
+        const header = card.querySelector('.card-header');
+        const dropdownIcon = header.querySelector('.dropdown-icon');
+        if (dropdownIcon) {
+          dropdownIcon.style.display = 'none';
+          header.insertBefore(lockIcon, dropdownIcon);
+        }
+        
         card.querySelector('.clear-preset').disabled = false;
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.clear-preset')) return;
           if (upgradeCard) {
             upgradeCard.scrollIntoView({ behavior: 'smooth' });
             upgradeCard.classList.add('expanded');

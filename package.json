@@ -7,7 +7,7 @@
     "watch": "vite build --watch"
   },
   "dependencies": {
-    "@summakey/shared-utils": "^1.0.0"
+    "@summakey/shared-utils": "file:../packages/shared-utils"
   },
   "devDependencies": {
     "vite": "^6.2.0"

@@ -514,26 +514,24 @@ input[type="radio"] {
 
 /* --- Locked State --- */
 .preset-card.locked {
-  position: relative;
+  background-color: #f2f2f7;
+  border-color: #dcdce1;
+  cursor: pointer;
 }
 
-.preset-card.locked::after {
-  content: 'Unlock Pro to use this preset';
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  color: #1d1d1f;
-  font-weight: 600;
-  text-align: center;
-  padding: 20px;
-  pointer-events: all;
-  cursor: pointer;
+.preset-card.locked .preset-name {
+  color: #8e8e93;
+}
+
+.preset-card.locked .preset-number {
+  background-color: #e5e5ea;
+  color: #8e8e93;
+}
+
+.preset-card.locked:hover {
+  background-color: #e5e5ea;
+  transform: none;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 input:disabled, textarea:disabled {

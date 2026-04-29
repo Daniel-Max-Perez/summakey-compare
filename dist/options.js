@@ -108,11 +108,51 @@ Conclude with this final analysis:
 
 {{content}}`;
 
+  const defaultPromptPreset2 = `You are a technical data extractor. Convert the unstructured product text into a strict, comparative feature matrix. Ignore subjective opinions.
+
+## 1. Feature Matrix Table
+Create a markdown table.
+* First Column: Feature/Spec Category (e.g., Price, Dimensions, Battery Life, Materials).
+* Subsequent Columns: Product names.
+* Populate cells with exact data points. If missing, state "Not Mentioned."
+
+## 2. Objective Advantages
+For each product, list 1-2 objective technical superiorities it holds over the others.
+
+---
+{{content}}`;
+
+  const defaultPromptPreset3 = `You are an expert consumer matching assistant. Ignore feature parity and focus entirely on the ideal user profile for each product based on the provided text.
+
+## 1. Persona Mapping
+For each product, write a "Buy this if you are..." statement detailing the specific type of person or situation it is best suited for.
+Write a corresponding "Do NOT buy this if you..." statement.
+
+## 2. The Deciding Question
+Provide one single question the buyer should ask themselves to instantly know which product is right for them.
+
+---
+{{content}}`;
+
+  const defaultPromptPreset4 = `You are a critical product investigator. Ignore all positive marketing claims and focus exclusively on downside risk, limitations, and potential buyer's remorse.
+
+## 1. The Biggest Flaw
+Identify the single biggest weakness, missing feature, or restrictive policy for each product.
+
+## 2. Compatibility & Hidden Costs
+List any proprietary accessories required, recurring subscription costs, or known compatibility issues mentioned in the text.
+
+## 3. The Safer Bet
+Based strictly on avoiding negative surprises, state which product is the lower-risk purchase and why.
+
+---
+{{content}}`;
+
   const defaultPresets = [
     { name: 'Comparison', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset1 },
-    { name: 'Feature Matrix', url: 'https://gemini.google.com/app', prompt: defaultPrompt },
-    { name: 'Pros & Cons', url: 'https://gemini.google.com/app', prompt: defaultPrompt },
-    { name: 'Value Analysis', url: 'https://gemini.google.com/app', prompt: defaultPrompt }
+    { name: 'Feature Matrix', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset2 },
+    { name: 'Use-Case Matcher', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset3 },
+    { name: 'The Red Flag Check', url: 'https://gemini.google.com/app', prompt: defaultPromptPreset4 }
   ];
 
   // --- Monetization Functions ---
@@ -165,10 +205,20 @@ Conclude with this final analysis:
       if (data.presets.length === 0 || data.presets.length < maxPresets) {
         data.presets = JSON.parse(JSON.stringify(defaultPresets));
         needsUpdate = true;
+      } else {
+        data.presets.forEach((preset, index) => {
+          if (index > 0) {
+            if (!preset.prompt || preset.prompt === '{{content}}' || !preset.name || preset.name === 'Pros & Cons' || preset.name === 'Value Analysis' || preset.name.startsWith('Preset ')) {
+              preset.name = defaultPresets[index].name;
+              preset.prompt = defaultPresets[index].prompt;
+              needsUpdate = true;
+            }
+          }
+        });
       }
 
       while (data.presets.length < maxPresets) {
-        data.presets.push({ name: `Preset ${data.presets.length + 1}`, url: '', prompt: defaultPrompt });
+        data.presets.push({ name: defaultPresets[data.presets.length] ? defaultPresets[data.presets.length].name : `Preset ${data.presets.length + 1}`, url: '', prompt: defaultPresets[data.presets.length] ? defaultPresets[data.presets.length].prompt : defaultPrompt });
         needsUpdate = true;
       }
 
@@ -241,13 +291,13 @@ Conclude with this final analysis:
     card.dataset.index = index;
 
     card.querySelector('.preset-number').textContent = index + 1;
-    const defaultName = index === 0 ? 'Comparison' : (index === maxPresets - 1 ? '[Your Custom Preset]' : `Preset ${index + 1}`);
+    const defaultName = defaultPresets[index] ? defaultPresets[index].name : `Preset ${index + 1}`;
     const nameInput = card.querySelector('.preset-name');
     nameInput.value = preset.name || defaultName;
     nameInput.placeholder = defaultName;
 
     const promptTextarea = card.querySelector('.promptTemplate');
-    const defaultPromptForCard = (index === 0) ? defaultPromptPreset1 : defaultPrompt;
+    const defaultPromptForCard = defaultPresets[index] ? defaultPresets[index].prompt : defaultPrompt;
     promptTextarea.value = preset.prompt || defaultPromptForCard;
 
     const promptWarning = card.querySelector('.prompt-warning');
@@ -365,8 +415,22 @@ Conclude with this final analysis:
         card.classList.add('locked');
         const controls = card.querySelectorAll('input, textarea, button, select');
         controls.forEach(control => control.disabled = true);
+        
+        const lockIcon = document.createElement('div');
+        lockIcon.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6e6e73" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: auto; opacity: 0.8;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
+        lockIcon.style.display = 'flex';
+        lockIcon.style.marginLeft = 'auto';
+
+        const header = card.querySelector('.card-header');
+        const dropdownIcon = header.querySelector('.dropdown-icon');
+        if (dropdownIcon) {
+          dropdownIcon.style.display = 'none';
+          header.insertBefore(lockIcon, dropdownIcon);
+        }
+        
         card.querySelector('.clear-preset').disabled = false;
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.clear-preset')) return;
           if (upgradeCard) {
             upgradeCard.scrollIntoView({ behavior: 'smooth' });
             upgradeCard.classList.add('expanded');
@@ -440,9 +504,10 @@ Conclude with this final analysis:
       card.classList.add('filled');
       return;
     }
-    const defaultNameForIndex = index === 0 ? 'Comparison' : (index === maxPresets - 1 ? '[Your Custom Preset]' : `Preset ${index + 1}`);
+    const defaultNameForIndex = defaultPresets[index] ? defaultPresets[index].name : `Preset ${index + 1}`;
     const isDefaultName = (name === defaultNameForIndex || name === '');
-    const isConfigured = !isDefaultName || (url && url.trim() !== '') || (prompt && prompt.trim() !== '' && prompt !== defaultPrompt && prompt !== defaultPromptPreset1);
+    const defaultPromptForIndex = defaultPresets[index] ? defaultPresets[index].prompt : defaultPrompt;
+    const isConfigured = !isDefaultName || (url && url.trim() !== '') || (prompt && prompt.trim() !== '' && prompt !== defaultPromptForIndex);
     if (isConfigured) {
       card.classList.remove('empty');
       card.classList.add('filled');
