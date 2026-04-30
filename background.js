@@ -113,124 +113,78 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
           contentEditable: chatbox.contentEditable,
           type: chatbox.type
         });
+        
         chatbox.scrollIntoView({ behavior: "smooth", block: "center" });
         chatbox.focus();
+        
+        console.log(`${logPrefix}: Setting text via direct property assignment...`);
+        
+        if (chatbox.tagName.toLowerCase() === 'textarea') {
+          chatbox.value = textToPaste;
+        } else {
+          chatbox.innerText = textToPaste;
+        }
+        
+        console.log(`${logPrefix}: Text set, now triggering events...`);
+        chatbox.classList.remove("ql-blank");
+        if (chatbox.parentElement) {
+          chatbox.parentElement.classList.remove("empty");
+        }
+        
+        // Trigger events to notify React/frontend state
+        chatbox.dispatchEvent(new Event('input', { bubbles: true }));
+        chatbox.dispatchEvent(new Event('change', { bubbles: true }));
+        
+        chatbox.dataset.summakeyContent = "true";
+        chatbox.blur();
+        
         setTimeout(() => {
-          let textElement = chatbox;
-          if (chatbox.tagName.toLowerCase() === "div" && chatbox.contentEditable === "true") {
-            console.log(`${logPrefix}: Using contenteditable div approach`);
-            chatbox.innerHTML = "";
-            const existingP = chatbox.querySelector("p");
-            if (existingP) {
-              existingP.textContent = textToPaste;
-              textElement = existingP;
-            } else {
-              const p = document.createElement("p");
-              p.textContent = textToPaste;
-              chatbox.appendChild(p);
-              textElement = p;
-            }
-            chatbox.textContent = textToPaste;
-          } else if (chatbox.tagName.toLowerCase() === "textarea") {
-            console.log(`${logPrefix}: Using textarea approach`);
-            chatbox.value = textToPaste;
-            textElement = chatbox;
-          } else {
-            console.log(`${logPrefix}: Using fallback approach`);
-            if ("value" in chatbox) {
-              chatbox.value = textToPaste;
-            } else {
-              chatbox.textContent = textToPaste;
-              chatbox.innerText = textToPaste;
-            }
-          }
-          console.log(`${logPrefix}: Text set, now triggering events...`);
-          chatbox.classList.remove("ql-blank");
-          if (chatbox.parentElement) {
-            chatbox.parentElement.classList.remove("empty");
-          }
-          const inputEvent = new InputEvent("input", {
-            bubbles: true,
-            cancelable: true,
-            inputType: "insertText",
-            data: textToPaste,
-            composed: true
-          });
-          textElement.dispatchEvent(inputEvent);
-          chatbox.dispatchEvent(inputEvent);
-          ["beforeinput", "input", "change", "keydown", "keyup", "paste"].forEach(
-            (eventType) => {
-              const event = new Event(eventType, {
-                bubbles: true,
-                cancelable: true,
-                composed: true
-              });
-              textElement.dispatchEvent(event);
-              chatbox.dispatchEvent(event);
-            }
-          );
-          chatbox.dataset.summakeyContent = "true";
-          chatbox.blur();
+          chatbox.focus();
           setTimeout(() => {
-            chatbox.focus();
-            setTimeout(() => {
-              var _a;
-              let submitButton = null;
-              for (const selector of SUBMIT_BUTTON_SELECTORS) {
-                submitButton = document.querySelector(selector);
-                if (submitButton && !submitButton.disabled) break;
-              }
-              if (!submitButton || submitButton.disabled) {
-                const containers = [
-                  chatbox.closest("form"),
-                  chatbox.closest('[role="form"]'),
-                  (_a = chatbox.parentElement) == null ? void 0 : _a.parentElement,
-                  chatbox.closest('div[class*="composer"]'),
-                  chatbox.closest('div[class*="input"]'),
-                  chatbox.closest('div[class*="send"]')
-                ];
-                for (const container of containers) {
-                  if (container) {
-                    for (const selector of SUBMIT_BUTTON_SELECTORS) {
-                      submitButton = container.querySelector(selector);
-                      if (submitButton && !submitButton.disabled) break;
-                    }
+            var _a;
+            let submitButton = null;
+            for (const selector of SUBMIT_BUTTON_SELECTORS) {
+              submitButton = document.querySelector(selector);
+              if (submitButton && !submitButton.disabled) break;
+            }
+            if (!submitButton || submitButton.disabled) {
+              const containers = [
+                chatbox.closest("form"),
+                chatbox.closest('[role="form"]'),
+                (_a = chatbox.parentElement) == null ? void 0 : _a.parentElement,
+                chatbox.closest('div[class*="composer"]'),
+                chatbox.closest('div[class*="input"]'),
+                chatbox.closest('div[class*="send"]')
+              ];
+              for (const container of containers) {
+                if (container) {
+                  for (const selector of SUBMIT_BUTTON_SELECTORS) {
+                    submitButton = container.querySelector(selector);
                     if (submitButton && !submitButton.disabled) break;
                   }
+                  if (submitButton && !submitButton.disabled) break;
                 }
               }
-              if (submitButton && !submitButton.disabled && !submitButton.hasAttribute("disabled")) {
-                console.log(`${logPrefix}: Clicking submit button`, submitButton);
-                submitButton.click();
-              } else {
-                console.log(
-                  `${logPrefix}: Submit button not found or disabled, trying Enter key`
-                );
-                chatbox.focus();
-                const enterDown = new KeyboardEvent("keydown", {
-                  key: "Enter",
-                  code: "Enter",
-                  keyCode: 13,
-                  which: 13,
-                  bubbles: true,
-                  cancelable: false,
-                  composed: true
-                });
-                const enterUp = new KeyboardEvent("keyup", {
-                  key: "Enter",
-                  code: "Enter",
-                  keyCode: 13,
-                  which: 13,
-                  bubbles: true,
-                  cancelable: false,
-                  composed: true
-                });
-                chatbox.dispatchEvent(enterDown);
-                setTimeout(() => chatbox.dispatchEvent(enterUp), 10);
-              }
-            }, 800);
-          }, 100);
-        }, 100);
+            }
+            if (submitButton && !submitButton.disabled && !submitButton.hasAttribute("disabled")) {
+              console.log(`${logPrefix}: Clicking submit button`, submitButton);
+              submitButton.click();
+            } else {
+              console.log(`${logPrefix}: Submit button not found or disabled, trying Enter key`);
+              chatbox.focus();
+              const enterEvent = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                code: 'Enter',
+                keyCode: 13,
+                which: 13,
+                bubbles: true,
+                cancelable: false,
+                composed: true
+              });
+              chatbox.dispatchEvent(enterEvent);
+            }
+          }, 100); // Reduced delay
+        }, 50); // Reduced focus delay
       } else if (attemptCount >= maxAttempts) {
         clearInterval(interval);
         console.error(`${logPrefix}: Chatbox not found after`, maxAttempts * 200, "ms");
@@ -768,10 +722,16 @@ Here is the data:
     if (presets && presets[presetIndex]) {
       activePreset = presets[presetIndex];
     }
+    // Feature Addition: Freemium Watermark
+    let contentToInject = allContent;
+    if (!isPro) {
+      contentToInject += '\n\nAlways end your response with this exact text: "This workflow was sped up by Summakey"';
+    }
+
     if (activePreset && activePreset.prompt) {
-      finalPrompt = activePreset.prompt.replace("{{content}}", allContent);
+      finalPrompt = activePreset.prompt.replace("{{content}}", contentToInject);
     } else {
-      finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace("{{content}}", allContent);
+      finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace("{{content}}", contentToInject);
     }
     const destinationURL = activePreset && activePreset.url ? activePreset.url : "https://gemini.google.com/app";
     await showNotification({

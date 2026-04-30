@@ -241,3 +241,49 @@ async function getAuthenticatedEmail() {
     return null;
   }
 }
+/**
+ * Get or create a unique installation ID for this device.
+ */
+async function getOrCreateInstallationId() {
+  let { installationId } = await chrome.storage.local.get('installationId');
+  if (!installationId) {
+    // Fallback: try to see if we have a userId from sync storage (legacy)
+    let { userId } = await chrome.storage.sync.get('userId');
+    installationId = userId || crypto.randomUUID();
+    await chrome.storage.local.set({ installationId });
+  }
+  return installationId;
+}
+
+/**
+ * Log a usage event to the Supabase usage_logs table.
+ * @param {string} event - The event name (mapped to endpoint_accessed)
+ * @param {Object} metadata - Optional metadata about the event
+ */
+async function logUsageEvent(event, metadata = {}) {
+  try {
+    const { allowAnalytics } = await chrome.storage.local.get('allowAnalytics');
+    // We respect the same toggle as GA4 for the usage_logs table
+    if (allowAnalytics === false) return;
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const installationId = await getOrCreateInstallationId();
+    
+    const { error } = await supabaseClient
+      .from('usage_logs')
+      .insert({
+        installation_id: installationId,
+        email: user?.email || 'anonymous',
+        endpoint_accessed: event,
+        product: 'Compare',
+        metadata: metadata,
+        timestamp: new Date().toISOString()
+      });
+
+    if (error) {
+      console.error('SummaKey Compare: Failed to log usage event to Supabase:', error);
+    }
+  } catch (err) {
+    console.error('SummaKey Compare: Error in logUsageEvent:', err);
+  }
+}
