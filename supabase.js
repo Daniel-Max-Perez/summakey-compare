@@ -162,6 +162,11 @@ async function checkPurchaseStatus(email, forceRefresh = false) {
       }
     }
 
+    if (forceRefresh) {
+      console.log('SummaKey Compare: Force refreshing session...');
+      await supabaseClient.auth.refreshSession();
+    }
+
     const { data: { user } } = await supabaseClient.auth.getUser();
     const userId = user?.id;
 
