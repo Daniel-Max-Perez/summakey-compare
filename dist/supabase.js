@@ -142,43 +142,89 @@ async function forceLogout() {
  * @param {string} email - The user's email address
  * @returns {Promise<boolean>} true if active purchase exists
  */
-async function checkPurchaseStatus(email) {
+/**
+ * Check if the user has an active Compare purchase.
+ * Queries profiles and subscriptions tables for comprehensive verification.
+ * @param {string} email - The user's email address
+ * @param {boolean} forceRefresh - If true, skip the cache
+ * @returns {Promise<boolean>} true if active purchase exists
+ */
+async function checkPurchaseStatus(email, forceRefresh = false) {
   if (!email) return false;
 
   try {
-    const { proStatusCache } = await chrome.storage.local.get('proStatusCache');
     const now = Date.now();
-    if (proStatusCache && proStatusCache.email === email && now < proStatusCache.expiresAt) {
-      await chrome.storage.sync.set({ pro: proStatusCache.isPro });
-      return proStatusCache.isPro;
+    if (!forceRefresh) {
+      const { proStatusCache } = await chrome.storage.local.get('proStatusCache');
+      if (proStatusCache && proStatusCache.email === email && now < proStatusCache.expiresAt) {
+        await chrome.storage.sync.set({ pro: proStatusCache.isPro });
+        return proStatusCache.isPro;
+      }
     }
 
-    const { data, error } = await supabaseClient
-      .from('purchases')
-      .select('id')
-      .eq('email', email)
-      .eq('status', 'active')
-      .in('product', ['Compare', 'Bundle'])
-      .limit(1);
-
-    if (error) {
-      console.error('SummaKey Compare: Purchase check failed:', error);
-      return false;
+    if (forceRefresh) {
+      console.log('SummaKey Compare: Force refreshing session...');
+      await supabaseClient.auth.refreshSession();
     }
 
-    const isPro = data && data.length > 0;
-    const expiresAt = now + (12 * 60 * 60 * 1000); // 12 hours TTL
-    await chrome.storage.local.set({ 
-      proStatusCache: { isPro, email, expiresAt } 
-    });
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    const userId = user?.id;
+
+    // 1. Check Profiles table for the boolean flag
+    let profileQuery = supabaseClient.from('profiles').select('is_compare_pro');
+    if (userId) profileQuery = profileQuery.eq('id', userId);
+    else profileQuery = profileQuery.eq('email', email);
     
-    await chrome.storage.sync.set({ pro: isPro });
-    return isPro;
+    const { data: profile } = await profileQuery.single();
+    if (profile?.is_compare_pro) {
+      return await updateProStatus(email, true);
+    }
+
+    // 2. Check Subscriptions table for active Compare Pro or Bundle
+    let subQuery = supabaseClient.from('subscriptions')
+      .select('id')
+      .in('status', ['active', 'trialing'])
+      .in('product', ['Compare', 'Compare Pro', 'Bundle', 'Shopper']);
+
+    if (userId) subQuery = subQuery.eq('user_id', userId);
+    else subQuery = subQuery.eq('email', email);
+
+    const { data: subs } = await subQuery.limit(1);
+    if (subs && subs.length > 0) {
+      return await updateProStatus(email, true);
+    }
+
+    // 3. Fallback to Purchases table (legacy)
+    let purchaseQuery = supabaseClient.from('purchases')
+      .select('id')
+      .eq('status', 'active')
+      .in('product', ['Compare', 'Compare Pro', 'Bundle', 'Shopper']);
+
+    if (userId) purchaseQuery = purchaseQuery.eq('user_id', userId);
+    else purchaseQuery = purchaseQuery.eq('email', email);
+
+    const { data: purchases } = await purchaseQuery.limit(1);
+    const isPro = !!(purchases && purchases.length > 0);
+
+    return await updateProStatus(email, isPro);
   } catch (err) {
     console.error('SummaKey Compare: Purchase check error:', err);
     return false;
   }
 }
+
+/**
+ * Internal helper to update local cache and sync storage.
+ */
+async function updateProStatus(email, isPro) {
+  const expiresAt = Date.now() + (12 * 60 * 60 * 1000); // 12 hours TTL
+  await chrome.storage.local.set({ 
+    proStatusCache: { isPro, email, expiresAt } 
+  });
+  await chrome.storage.sync.set({ pro: isPro });
+  return isPro;
+}
+
 
 /**
  * Get the currently authenticated user's email, or null if not signed in.

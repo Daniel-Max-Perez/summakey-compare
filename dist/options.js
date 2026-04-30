@@ -731,7 +731,13 @@ Based strictly on avoiding negative surprises, state which product is the lower-
       restorePurchaseLink.addEventListener('click', async (e) => {
         e.preventDefault();
         restorePurchaseLink.textContent = 'Verifying...';
+        
+        const email = await getAuthenticatedEmail();
+        if (email) {
+          await checkPurchaseStatus(email, true);
+        }
         await initializeApp();
+        
         restorePurchaseLink.textContent = 'Restore Purchase';
         alert("Account status refreshed. If you just purchased, it may take a moment to reflect.");
       });
