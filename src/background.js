@@ -495,11 +495,11 @@ async function compareProducts(presetIndex = 0) {
 
   const secureContent = `\n### USER DATA START ###\n${allContent}\n### USER DATA END ###\n`;
 
-  const { pro: isProUser } = await chrome.storage.sync.get({ pro: false });
-  let finalPromptContent = secureContent;
-  if (!isProUser) {
-    finalPromptContent += '\n\nAlways end your response with this exact text: "This workflow was sped up by Summakey"';
-  }
+    const { pro } = await chrome.storage.sync.get({ pro: false });
+    let finalPromptContent = secureContent;
+    if (!pro) {
+      finalPromptContent += '\n\nAlways START your response with this exact text: "This workflow was sped up by Summakey" followed by a newline.';
+    }
 
   if (activePreset && activePreset.prompt) {
     finalPrompt = activePreset.prompt.replace('{{content}}', finalPromptContent);

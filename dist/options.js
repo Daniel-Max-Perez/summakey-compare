@@ -266,8 +266,9 @@ Based strictly on avoiding negative surprises, state which product is the lower-
     if (upgradeCard) {
       upgradeCard.style.display = appState.isPro ? 'none' : 'flex';
     }
+    // The account card should always be visible so users can sign out, matching Extract's behavior.
     if (accountCard) {
-      accountCard.style.display = appState.isPro ? 'none' : 'block';
+      accountCard.style.display = 'block';
     }
 
     presetsGrid.innerHTML = '';
