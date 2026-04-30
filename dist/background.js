@@ -6,27 +6,21 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
     console.log(`${logPrefix}: Attempting to paste text into chatbox...`);
     console.log(`${logPrefix}: Text length:`, textToPaste.length);
     if (window.__summakeyInjected) {
-      console.log(`${logPrefix}: Injection already active on this page, skipping.`);
+      console.log(`${logPrefix}: [DEBUG] Injection already active on this page, skipping.`);
       return;
     }
     window.__summakeyInjected = true;
+    console.log(`${logPrefix}: [DEBUG] Starting injection process...`);
     const SELECTORS = (remoteConfig == null ? void 0 : remoteConfig.chatboxSelectors) || [
+      "div#prompt-textarea",
       "textarea#prompt-textarea",
-      'textarea[id^="prompt-textarea"]',
-      'textarea[id*="prompt"]',
       "#prompt-textarea",
       'div[contenteditable="true"][data-placeholder*="Message"]',
-      'div[contenteditable="true"][data-placeholder*="message"]',
       'div[contenteditable="true"][placeholder*="Message"]',
       'div[contenteditable="true"][aria-label*="Message"]',
       'div[contenteditable="true"][aria-label*="message"]',
-      'div[contenteditable="true"][aria-label*="Write"]',
-      'div[contenteditable="true"][aria-label*="Enter"]',
       'div[contenteditable="true"][role="textbox"]',
       'div[contenteditable="true"]',
-      "#prompt-input",
-      "#chat-input",
-      "#message-input",
       'textarea[placeholder*="Message"]',
       'textarea[placeholder*="message"]',
       'textarea[placeholder*="Ask"]',
@@ -47,6 +41,7 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
           }
         }
       }
+      console.warn(`${logPrefix}: [DEBUG] No chatbox found among ${SELECTORS.length} selectors.`);
       return null;
     }
     const SUBMIT_BUTTON_SELECTORS = (remoteConfig == null ? void 0 : remoteConfig.submitSelectors) || [
@@ -63,11 +58,13 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
     ];
     const GEMINI_SUBMIT_SELECTORS = [
       'button[aria-label="Send message"]',
+      'button[aria-label*="send"]',
       "button.send-button",
       'button[data-mat-icon-name="send"]',
       'button[mattooltip*="Send"]',
       ".send-button",
-      "button[jsname]"
+      "button[jsname]",
+      'div[role="button"][aria-label*="Send"]'
     ];
     function waitForChatbox(callback) {
       const existingChatbox = findChatbox();
@@ -83,6 +80,7 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
         }
       });
       observer.observe(document.body || document.documentElement, { childList: true, subtree: true });
+      console.log(`${logPrefix}: [DEBUG] Started MutationObserver to wait for chatbox...`);
       setTimeout(() => {
         if (!isFound) {
           isFound = true;
@@ -136,6 +134,7 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
             const enterOpts = { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true };
             chatbox.dispatchEvent(new KeyboardEvent("keydown", enterOpts));
           }
+          console.log(`${logPrefix}: [DEBUG] Injection complete.`);
         }, 300);
       }, 200);
     });
@@ -223,9 +222,11 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
   }
   function navigateAndInjectPrompt({ destinationUrl, finalPrompt, logPrefix = "SummaKey", notificationDelayMs = 200, spaDelayMs = 2e3, remoteConfig = null }) {
     setTimeout(async () => {
+      console.log(`${logPrefix}: [DEBUG] Navigating to ${destinationUrl}...`);
       const llmTab = await chrome.tabs.create({ url: destinationUrl, active: true });
       let attempts = 0;
       const maxWaitAttempts = 20;
+      console.log(`${logPrefix}: [DEBUG] Created tab ${llmTab.id}, waiting for load complete...`);
       const waitForPage = setInterval(async () => {
         attempts++;
         try {
@@ -234,11 +235,13 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
             clearInterval(waitForPage);
             setTimeout(async () => {
               try {
+                console.log(`${logPrefix}: [DEBUG] Page complete, executing injection script...`);
                 await chrome.scripting.executeScript({
                   target: { tabId: llmTab.id },
                   func: pasteAndSubmitToLLM,
                   args: [finalPrompt, logPrefix, remoteConfig]
                 });
+                console.log(`${logPrefix}: [DEBUG] Script execution triggered.`);
               } catch (err) {
                 console.error("Injection failed:", err);
               }
