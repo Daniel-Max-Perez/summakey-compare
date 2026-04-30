@@ -136,55 +136,78 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
         chatbox.dispatchEvent(new Event('change', { bubbles: true }));
         
         chatbox.dataset.summakeyContent = "true";
-        chatbox.blur();
         
+        // Wait for React to process state update, then submit.
+        // CRITICAL: No blur/focus cycle — blur() after text injection causes
+        // Gemini to interpret the focus-loss as a "stop generation" signal.
         setTimeout(() => {
-          chatbox.focus();
-          setTimeout(() => {
-            var _a;
-            let submitButton = null;
-            for (const selector of SUBMIT_BUTTON_SELECTORS) {
-              submitButton = document.querySelector(selector);
-              if (submitButton && !submitButton.disabled) break;
+          const GEMINI_SUBMIT_SELECTORS = [
+            'button[aria-label="Send message"]',
+            'button.send-button',
+            'button[data-mat-icon-name="send"]',
+            'button[mattooltip*="Send"]',
+            '.send-button',
+            'button[jsname]'
+          ];
+          let submitButton = null;
+          
+          // Try Gemini-specific selectors first
+          for (const selector of GEMINI_SUBMIT_SELECTORS) {
+            const candidate = document.querySelector(selector);
+            if (candidate && !candidate.disabled && !candidate.hasAttribute('disabled')) {
+              submitButton = candidate;
+              break;
             }
-            if (!submitButton || submitButton.disabled) {
-              const containers = [
-                chatbox.closest("form"),
-                chatbox.closest('[role="form"]'),
-                (_a = chatbox.parentElement) == null ? void 0 : _a.parentElement,
-                chatbox.closest('div[class*="composer"]'),
-                chatbox.closest('div[class*="input"]'),
-                chatbox.closest('div[class*="send"]')
-              ];
-              for (const container of containers) {
-                if (container) {
-                  for (const selector of SUBMIT_BUTTON_SELECTORS) {
-                    submitButton = container.querySelector(selector);
-                    if (submitButton && !submitButton.disabled) break;
-                  }
-                  if (submitButton && !submitButton.disabled) break;
-                }
+          }
+          // Fall back to generic selectors
+          if (!submitButton) {
+            for (const selector of SUBMIT_BUTTON_SELECTORS) {
+              const candidate = document.querySelector(selector);
+              if (candidate && !candidate.disabled) {
+                submitButton = candidate;
+                break;
               }
             }
-            if (submitButton && !submitButton.disabled && !submitButton.hasAttribute("disabled")) {
-              console.log(`${logPrefix}: Clicking submit button`, submitButton);
-              submitButton.click();
-            } else {
-              console.log(`${logPrefix}: Submit button not found or disabled, trying Enter key`);
-              chatbox.focus();
-              const enterEvent = new KeyboardEvent('keydown', {
-                key: 'Enter',
-                code: 'Enter',
-                keyCode: 13,
-                which: 13,
-                bubbles: true,
-                cancelable: false,
-                composed: true
-              });
-              chatbox.dispatchEvent(enterEvent);
+          }
+          if (!submitButton) {
+            var _a;
+            const containers = [
+              chatbox.closest("form"),
+              chatbox.closest('[role="form"]'),
+              (_a = chatbox.parentElement) == null ? void 0 : _a.parentElement,
+              chatbox.closest('div[class*="composer"]'),
+              chatbox.closest('div[class*="input"]'),
+              chatbox.closest('div[class*="send"]')
+            ];
+            for (const container of containers) {
+              if (container) {
+                for (const selector of [...GEMINI_SUBMIT_SELECTORS, ...SUBMIT_BUTTON_SELECTORS]) {
+                  submitButton = container.querySelector(selector);
+                  if (submitButton && !submitButton.disabled) break;
+                }
+                if (submitButton && !submitButton.disabled) break;
+              }
             }
-          }, 100); // Reduced delay
-        }, 50); // Reduced focus delay
+          }
+          if (submitButton && !submitButton.disabled && !submitButton.hasAttribute("disabled")) {
+            console.log(`${logPrefix}: Clicking submit button`, submitButton);
+            submitButton.click();
+          } else {
+            // Last resort: Enter keydown only — no keyup to avoid Gemini stop trigger
+            console.log(`${logPrefix}: Submit button not found, using Enter keydown only`);
+            chatbox.focus();
+            chatbox.dispatchEvent(new KeyboardEvent('keydown', {
+              key: 'Enter',
+              code: 'Enter',
+              keyCode: 13,
+              which: 13,
+              bubbles: true,
+              cancelable: false,
+              composed: true
+            }));
+          }
+        }, 150);
+
       } else if (attemptCount >= maxAttempts) {
         clearInterval(interval);
         console.error(`${logPrefix}: Chatbox not found after`, maxAttempts * 200, "ms");
