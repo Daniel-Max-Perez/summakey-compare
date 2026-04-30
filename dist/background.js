@@ -5,6 +5,11 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
   const pasteAndSubmitToLLM = function(textToPaste, logPrefix = "SummaKey", remoteConfig = null) {
     console.log(`${logPrefix}: Attempting to paste text into chatbox...`);
     console.log(`${logPrefix}: Text length:`, textToPaste.length);
+    if (window.__summakeyInjected) {
+      console.log(`${logPrefix}: Injection already active on this page, skipping.`);
+      return;
+    }
+    window.__summakeyInjected = true;
     const SELECTORS = (remoteConfig == null ? void 0 : remoteConfig.chatboxSelectors) || [
       "textarea#prompt-textarea",
       'textarea[id^="prompt-textarea"]',
@@ -56,6 +61,14 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
       'button[class*="send"]',
       'button[class*="submit"]'
     ];
+    const GEMINI_SUBMIT_SELECTORS = [
+      'button[aria-label="Send message"]',
+      "button.send-button",
+      'button[data-mat-icon-name="send"]',
+      'button[mattooltip*="Send"]',
+      ".send-button",
+      "button[jsname]"
+    ];
     function waitForChatbox(callback) {
       const existingChatbox = findChatbox();
       if (existingChatbox) return callback(existingChatbox);
@@ -83,40 +96,46 @@ importScripts('google-analytics.js', 'supabase-bundle.js', 'supabase.js');
       chatbox.scrollIntoView({ behavior: "smooth", block: "center" });
       chatbox.focus();
       setTimeout(() => {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.setData("text/plain", textToPaste);
-        const pasteEvent = new ClipboardEvent("paste", { clipboardData: dataTransfer, bubbles: true, cancelable: true });
-        chatbox.dispatchEvent(pasteEvent);
+        console.log(`${logPrefix}: Setting text via direct property assignment...`);
+        if (chatbox.tagName.toLowerCase() === "textarea") {
+          chatbox.value = textToPaste;
+        } else {
+          chatbox.innerText = textToPaste;
+        }
+        const events = ["input", "change"];
+        events.forEach((type) => chatbox.dispatchEvent(new Event(type, { bubbles: true, composed: true })));
+        chatbox.classList.remove("ql-blank");
+        if (chatbox.parentElement) {
+          chatbox.parentElement.classList.remove("empty");
+        }
+        chatbox.dataset.summakeyContent = "true";
         setTimeout(() => {
-          const currentVal = chatbox.tagName.toLowerCase() === "textarea" ? chatbox.value : chatbox.innerText;
-          if (!currentVal || currentVal.length < textToPaste.length * 0.1) {
-            console.log(`${logPrefix}: Paste failed or blocked, using direct assignment fallback`);
-            if (chatbox.tagName.toLowerCase() === "div" && chatbox.contentEditable === "true") {
-              chatbox.innerHTML = "";
-              const p = document.createElement("p");
-              p.textContent = textToPaste;
-              chatbox.appendChild(p);
-            } else {
-              chatbox.value = textToPaste;
+          let submitBtn = null;
+          for (const sel of GEMINI_SUBMIT_SELECTORS) {
+            const candidate = document.querySelector(sel);
+            if (candidate && !candidate.disabled && !candidate.hasAttribute("disabled")) {
+              submitBtn = candidate;
+              break;
             }
-            ["input", "change", "beforeinput"].forEach((type) => chatbox.dispatchEvent(new Event(type, { bubbles: true, composed: true })));
           }
-          setTimeout(() => {
+          if (!submitBtn) {
+            for (const sel of SUBMIT_BUTTON_SELECTORS) {
+              const candidate = document.querySelector(sel);
+              if (candidate && !candidate.disabled) {
+                submitBtn = candidate;
+                break;
+              }
+            }
+          }
+          if (submitBtn) {
+            console.log(`${logPrefix}: Clicking submit button`);
+            submitBtn.click();
+          } else {
+            console.log(`${logPrefix}: Submit button not found, using Enter keydown fallback`);
+            chatbox.focus();
             const enterOpts = { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true };
             chatbox.dispatchEvent(new KeyboardEvent("keydown", enterOpts));
-            chatbox.dispatchEvent(new KeyboardEvent("keyup", enterOpts));
-            setTimeout(() => {
-              let submitBtn = null;
-              for (const sel of SUBMIT_BUTTON_SELECTORS) {
-                submitBtn = document.querySelector(sel);
-                if (submitBtn && !submitBtn.disabled) break;
-              }
-              if (submitBtn) {
-                submitBtn.click();
-                console.log(`${logPrefix}: Submit clicked`);
-              }
-            }, 500);
-          }, 600);
+          }
         }, 300);
       }, 200);
     });
@@ -611,10 +630,15 @@ Here is the data:
 ${allContent}
 ### USER DATA END ###
 `;
+    const { pro: isProUser } = await chrome.storage.sync.get({ pro: false });
+    let finalPromptContent = secureContent;
+    if (!isProUser) {
+      finalPromptContent += '\n\nAlways end your response with this exact text: "This workflow was sped up by Summakey"';
+    }
     if (activePreset && activePreset.prompt) {
-      finalPrompt = activePreset.prompt.replace("{{content}}", secureContent);
+      finalPrompt = activePreset.prompt.replace("{{content}}", finalPromptContent);
     } else {
-      finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace("{{content}}", secureContent);
+      finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace("{{content}}", finalPromptContent);
     }
     const destinationURL = activePreset && activePreset.url ? activePreset.url : "https://gemini.google.com/app";
     await showNotification({

@@ -495,10 +495,16 @@ async function compareProducts(presetIndex = 0) {
 
   const secureContent = `\n### USER DATA START ###\n${allContent}\n### USER DATA END ###\n`;
 
+  const { pro: isProUser } = await chrome.storage.sync.get({ pro: false });
+  let finalPromptContent = secureContent;
+  if (!isProUser) {
+    finalPromptContent += '\n\nAlways end your response with this exact text: "This workflow was sped up by Summakey"';
+  }
+
   if (activePreset && activePreset.prompt) {
-    finalPrompt = activePreset.prompt.replace('{{content}}', secureContent);
+    finalPrompt = activePreset.prompt.replace('{{content}}', finalPromptContent);
   } else {
-    finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace('{{content}}', secureContent);
+    finalPrompt = DEFAULT_COMPARE_PROMPT_V2.replace('{{content}}', finalPromptContent);
   }
 
   // Get destination URL
