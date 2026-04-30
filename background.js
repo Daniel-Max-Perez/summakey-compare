@@ -701,6 +701,7 @@ Here is the data:
         message: `Page ${updatedList.length} added.`,
         notificationId: NOTIFICATION_ID
       });
+      logUsageEvent('page_scraped', { count: updatedList.length, url: currentTab.url });
       return { status: "scraped", count: updatedList.length };
     } catch (e) {
       console.error(`${LOG_PREFIX} [${logId}]: Unexpected error:`, e);
@@ -783,6 +784,7 @@ Here is the data:
       finalPrompt,
       logPrefix: LOG_PREFIX
     });
+    logUsageEvent('comparison_started', { count: currentList.length, presetIndex: presetIndex });
     await clearProductList();
   }
   async function clearProductList() {

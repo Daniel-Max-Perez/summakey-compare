@@ -156,15 +156,6 @@ Based strictly on avoiding negative surprises, state which product is the lower-
   ];
 
   // --- Monetization Functions ---
-  const getOrCreateInstallationId = async () => {
-    let { installationId } = await new Promise(resolve => chrome.storage.local.get('installationId', resolve));
-    if (!installationId) {
-      let { userId } = await new Promise(resolve => chrome.storage.sync.get('userId', resolve));
-      installationId = userId || crypto.randomUUID();
-      await new Promise(resolve => chrome.storage.local.set({ installationId }, resolve));
-    }
-    return installationId;
-  };
 
   // --- Auth State Management ---
   let pendingEmail = '';
