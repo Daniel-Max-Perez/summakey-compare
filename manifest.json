@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SummaKey Compare - Side-by-Side AI Research Tool",
-  "version": "1.11",
+  "version": "1.13",
   "description": "AI Prompt Bridge and Data Extractor. Compare products and let AI build you a table.",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"
@@ -44,8 +44,17 @@
     "scrape_current_page": {
       "description": "Scrape current page"
     },
-    "compare_products": {
-      "description": "Compare all scraped pages and clear list"
+    "execute_preset_01": {
+      "description": "Execute Preset 01"
+    },
+    "execute_preset_02": {
+      "description": "Execute Preset 02"
+    },
+    "execute_preset_03": {
+      "description": "Execute Preset 03"
+    },
+    "execute_preset_04": {
+      "description": "Execute Preset 04"
     }
   }
 }

@@ -451,8 +451,12 @@ Here is the data:
     lastHotkeyTime = now;
     if (command === "scrape_current_page") {
       scrapeAndStore("hotkey");
-    } else if (command === "compare_products") {
-      compareProducts(0);
+    } else if (command.startsWith("execute_preset_")) {
+      const presetNumber = parseInt(command.substring(command.length - 2), 10);
+      const presetIndex = presetNumber - 1;
+      if (!isNaN(presetIndex) && presetIndex >= 0) {
+        compareProducts(presetIndex);
+      }
     }
   });
   async function scrapeAndStore(logId = "direct", explicitTab = null) {
