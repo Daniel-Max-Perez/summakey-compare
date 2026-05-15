@@ -364,11 +364,12 @@ Here is the data:
     console.log(`${LOG_PREFIX} [${LOG_ID}]: Received message:`, request.action);
     if (request.action === "scrapeCurrentPage" || request.action === "scrape") {
       scrapeAndStore(LOG_ID, request.tab).then((result) => {
-        console.log(`${LOG_PREFIX} [${LOG_ID}]: Scrape successful.`);
-        sendResponse(result || { status: "scraped" });
+        console.log(`${LOG_PREFIX} [${LOG_ID}]: Scrape result:`, result.status);
+        sendResponse(result);
       }).catch((error) => {
-        console.error(`${LOG_PREFIX} [${LOG_ID}]: Scrape error:`, error);
-        sendResponse({ status: "error", message: error.message });
+        const errorMsg = (error == null ? void 0 : error.message) || "Unknown background error";
+        console.error(`${LOG_PREFIX} [${LOG_ID}]: Scrape catch-block error:`, error);
+        sendResponse({ status: "error", message: errorMsg });
       });
       return true;
     }
@@ -492,7 +493,7 @@ Here is the data:
       console.log(`${LOG_PREFIX} [${logId}]: Identifying active tab...`);
       let currentTab = explicitTab;
       if (!currentTab) {
-        const tabs = await chrome.tabs.query({ active: true });
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
         currentTab = tabs.find((t) => !t.url.startsWith("chrome-extension://")) || tabs[0];
       }
       if (!currentTab || !currentTab.id) {
@@ -530,24 +531,34 @@ Here is the data:
         func: getDetailedPageContent,
         injectImmediately: true
       });
-      const scriptTimeout = new Promise((_, rej) => setTimeout(() => rej(new Error("Page too large or slow to scrape. Try refreshing.")), 15e3));
+      let timeoutId;
+      const scriptTimeout = new Promise((_, rej) => {
+        timeoutId = setTimeout(() => rej(new Error("Page too large or slow to scrape. Try refreshing.")), 15e3);
+      });
       try {
         const results = await Promise.race([scriptPromise, scriptTimeout]);
+        clearTimeout(timeoutId);
         if (!results || !results[0] || results[0].result === void 0) {
           throw new Error("No content returned from tab");
         }
         pageContent = results[0].result;
       } catch (e) {
+        if (timeoutId) clearTimeout(timeoutId);
         console.error(`${LOG_PREFIX} [${logId}]: Scrape fail:`, e);
         await showNotification({
           title: "Scrape Failed",
-          message: e.message,
+          message: e.message || "Unknown error during script injection.",
           notificationId: NOTIFICATION_ID
         });
-        return { status: "error", message: e.message };
+        return { status: "error", message: e.message || "Injection failed" };
       }
       if (!pageContent || pageContent.trim().length === 0 || pageContent.startsWith("ERROR:")) {
         const errMsg = pageContent || "No details detected on this page.";
+        await showNotification({
+          title: "Scrape Error",
+          message: errMsg,
+          notificationId: NOTIFICATION_ID
+        });
         return { status: "error", message: errMsg };
       }
       const maxContentSize = 25 * 1024;
@@ -569,8 +580,14 @@ Here is the data:
       });
       return { status: "scraped", count: updatedList.length };
     } catch (e) {
+      const errorMsg = (e == null ? void 0 : e.message) || "Unexpected background error";
       console.error(`${LOG_PREFIX} [${logId}]: Unexpected error:`, e);
-      return { status: "error", message: e.message };
+      await showNotification({
+        title: "Scrape Error",
+        message: errorMsg,
+        notificationId: NOTIFICATION_ID
+      });
+      return { status: "error", message: errorMsg };
     }
   }
   async function compareProducts(presetIndex = 0) {

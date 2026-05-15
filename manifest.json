@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SummaKey Compare - Side-by-Side AI Research Tool",
-  "version": "1.13",
+  "version": "1.14",
   "description": "AI Prompt Bridge and Data Extractor. Compare products and let AI build you a table.",
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self';"

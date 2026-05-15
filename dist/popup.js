@@ -112,11 +112,18 @@ document.addEventListener('DOMContentLoaded', () => {
           addBtn.querySelector('.btn-text').textContent = 'Add Current Page';
           addBtn.disabled = false;
 
+          if (chrome.runtime.lastError) {
+            const errorMsg = chrome.runtime.lastError.message || 'Communication error with background script.';
+            console.error(`${LOG_PREFIX}: Runtime error:`, errorMsg);
+            alert(`Error: ${errorMsg}`);
+            return;
+          }
+
           if (response && response.status === 'scraped') {
             console.log(`${LOG_PREFIX}: Scrape successful.`);
             setTimeout(() => window.close(), 400);
           } else {
-            const errMsg = (response && response.message) || 'Communication error with background script.';
+            const errMsg = (response && response.message) || 'Background script failed to respond.';
             console.error(`${LOG_PREFIX}: Scrape failed:`, errMsg);
             alert(`Error: ${errMsg}`);
           }
