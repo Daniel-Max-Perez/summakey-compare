@@ -171,11 +171,14 @@ async function checkPurchaseStatus(email, forceRefresh = false) {
     const userId = user?.id;
 
     // 1. Check Profiles table for the boolean flag
-    let profileQuery = supabaseClient.from('profiles').select('is_compare_pro');
+    let profileQuery = supabaseClient.from('profiles').select('is_compare_pro, pro_tier');
     if (userId) profileQuery = profileQuery.eq('id', userId);
     else profileQuery = profileQuery.eq('email', email);
     
     const { data: profile } = await profileQuery.single();
+    if (profile?.pro_tier === 'monthly' || profile?.pro_tier === 'lifetime') {
+      return await updateProStatus(email, true);
+    }
     if (profile?.is_compare_pro) {
       return await updateProStatus(email, true);
     }
@@ -184,7 +187,7 @@ async function checkPurchaseStatus(email, forceRefresh = false) {
     let subQuery = supabaseClient.from('subscriptions')
       .select('id')
       .in('status', ['active', 'trialing'])
-      .in('product', ['Compare', 'Compare Pro', 'Bundle', 'Shopper']);
+      .in('product', ['Compare', 'Compare Pro', 'Bundle', 'Shopper', 'SummaKey']);
 
     if (userId) subQuery = subQuery.eq('user_id', userId);
     else subQuery = subQuery.eq('email', email);
@@ -198,7 +201,7 @@ async function checkPurchaseStatus(email, forceRefresh = false) {
     let purchaseQuery = supabaseClient.from('purchases')
       .select('id')
       .eq('status', 'active')
-      .in('product', ['Compare', 'Compare Pro', 'Bundle', 'Shopper']);
+      .in('product', ['Compare', 'Compare Pro', 'Bundle', 'Shopper', 'SummaKey']);
 
     if (userId) purchaseQuery = purchaseQuery.eq('user_id', userId);
     else purchaseQuery = purchaseQuery.eq('email', email);

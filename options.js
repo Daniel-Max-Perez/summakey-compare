@@ -254,10 +254,10 @@ Based strictly on avoiding negative surprises, state which product is the lower-
     signedInEmail.textContent = email;
 
     if (isPro) {
-      purchaseStatusText.textContent = '🎉 SummaKey Compare Pro is active.';
+      purchaseStatusText.textContent = '🎉 SummaKey Pro is active.';
       purchaseStatusText.style.color = 'var(--brand-accent)';
     } else {
-      purchaseStatusText.textContent = 'No active pro subscription found.';
+      purchaseStatusText.textContent = 'No active SummaKey Pro subscription found.';
       purchaseStatusText.style.color = '#999';
     }
   }
@@ -673,27 +673,20 @@ Based strictly on avoiding negative surprises, state which product is the lower-
       try {
         const installationId = await getOrCreateInstallationId();
         
-        // --- ADDED SUPPORT FOR MONTHLY/YEARLY BILLING INTERVAL ---
-        const intervalRadios = document.getElementsByName('compareBillingInterval');
-        let selectedInterval = 'yearly'; // default
-        for (const radio of intervalRadios) {
-          if (radio.checked) {
-            selectedInterval = radio.value;
-            break;
-          }
-        }
-
         // Get email from auth state if available
         const email = await getAuthenticatedEmail();
+
+        const billingRadio = document.querySelector('input[name="compareBillingInterval"]:checked');
+        const interval = billingRadio ? billingRadio.value : 'lifetime';
 
         const response = await fetch('https://summakey-backend.vercel.app/api/stripe-checkout', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             userId: installationId, 
-            product: 'compare',
-            interval: selectedInterval,
-            email: await getAuthenticatedEmail() || undefined,
+            product: 'summakey',
+            interval: interval,
+            email: email || undefined,
             source: 'extension'
           })
         });
